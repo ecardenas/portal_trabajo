@@ -184,14 +184,32 @@ def main():
             browser = p.chromium.launch(headless=HEADLESS)
             print("   ✅ Navegador lanzado")
             
-            context = browser.new_context()
+            context = browser.new_context(
+                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+            )
             page = context.new_page()
             
-            print(f"   🌐 Navegando a {URL[:50]}...")
-            page.goto(URL, wait_until="domcontentloaded", timeout=60000)
-            print("   ✅ Página cargada")
+            # Configurar timeouts más largos
+            page.set_default_timeout(120000)  # 2 minutos
             
-            page.wait_for_timeout(3000)
+            print(f"   🌐 Navegando a {URL[:50]}...")
+            
+            # Intentar cargar con reintentos
+            max_intentos = 3
+            for intento in range(max_intentos):
+                try:
+                    page.goto(URL, wait_until="networkidle", timeout=120000)
+                    print("   ✅ Página cargada")
+                    break
+                except Exception as e:
+                    print(f"   ⚠️ Intento {intento + 1}/{max_intentos} falló: {e}")
+                    if intento < max_intentos - 1:
+                        print("   🔄 Reintentando en 10 segundos...")
+                        page.wait_for_timeout(10000)
+                    else:
+                        raise Exception(f"No se pudo cargar la página después de {max_intentos} intentos")
+            
+            page.wait_for_timeout(5000)  # Esperar un poco más
 
             pagina_actual = 1
 
@@ -425,4 +443,6 @@ if __name__ == "__main__":
         traceback.print_exc()
     finally:
         print("\n🏁 Script finalizado")
-        input("Presiona Enter para cerrar...")
+        # Solo pedir input si NO estamos en modo headless (entorno interactivo)
+        if not HEADLESS:
+            input("Presiona Enter para cerrar...")
