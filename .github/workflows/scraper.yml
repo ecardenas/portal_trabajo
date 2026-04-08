@@ -1,0 +1,70 @@
+name: Scraper SERVIR
+
+on:
+  schedule:
+    # Ejecutar todos los días a las 9am hora Perú (14:00 UTC)
+    - cron: '0 14 * * *'
+  
+  # Permite ejecución manual desde GitHub
+  workflow_dispatch:
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Instalar dependencias
+        run: |
+          pip install playwright pandas openpyxl
+          playwright install chromium
+          playwright install-deps
+      
+      - name: Descargar BD existente
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: database
+          path: .
+      
+      - name: Ejecutar scraper
+        env:
+          HEADLESS: 'true'
+        run: python scraper.py
+      
+      - name: Guardar BD actualizada
+        uses: actions/upload-artifact@v4
+        with:
+          name: database
+          path: empleos_servir.db
+          retention-days: 90
+      
+      - name: Guardar Excel
+        uses: actions/upload-artifact@v4
+        with:
+          name: excel-${{ github.run_number }}
+          path: empleos_servir_*.xlsx
+          retention-days: 30
+      
+      - name: Resumen
+        run: |
+          echo "## 📊 Resumen del Scraping" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          python -c "
+          import sqlite3
+          conn = sqlite3.connect('empleos_servir.db')
+          cursor = conn.cursor()
+          cursor.execute('SELECT COUNT(*) FROM ofertas WHERE activo = 1')
+          activas = cursor.fetchone()[0]
+          cursor.execute('SELECT COUNT(*) FROM ofertas')
+          total = cursor.fetchone()[0]
+          print(f'- **Ofertas activas:** {activas}')
+          print(f'- **Total histórico:** {total}')
+          " >> $GITHUB_STEP_SUMMARY
