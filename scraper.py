@@ -25,6 +25,15 @@ except ImportError as e:
     print("   Continuando sin persistencia en BD...")
     BD_DISPONIBLE = False
 
+# Intentar importar notificaciones
+try:
+    from notificaciones import notificar_nuevas_ofertas, enviar_resumen_scraping
+    NOTIFICACIONES_DISPONIBLES = True
+    print("✅ Módulo de notificaciones cargado")
+except ImportError as e:
+    print(f"⚠️ Notificaciones no disponibles: {e}")
+    NOTIFICACIONES_DISPONIBLES = False
+
 URL = "https://app.servir.gob.pe/DifusionOfertasExterno/faces/consultas/ofertas_laborales.xhtml"
 OUTPUT = f"empleos_servir_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
 
@@ -198,7 +207,7 @@ def main():
             max_intentos = 3
             for intento in range(max_intentos):
                 try:
-                    page.goto(URL, wait_until="networkidle", timeout=120000)
+                    page.goto(URL, wait_until="networkidle", timeout=120000)  # Cambiado de 60000 a 120000
                     print("   ✅ Página cargada")
                     break
                 except Exception as e:
@@ -295,26 +304,24 @@ def main():
                     
                     del reg["idx"]
                     
-                    # Guardar en base de datos si está disponible
+                    # Guardar en base de datos
                     if BD_DISPONIBLE:
-                        try:
-                            accion, oferta_id = insertar_o_actualizar_oferta(reg)
-                            
-                            if oferta_id:
-                                ids_procesados.append(oferta_id)
-                            
-                            if accion == "nuevo":
-                                stats["nuevos"] += 1
-                                print(f"   ✅ NUEVO: {reg['puesto'][:50]}")
-                            elif accion == "actualizado":
-                                stats["actualizados"] += 1
-                                print(f"   🔄 Actualizado: {reg['puesto'][:50]}")
-                            elif accion == "sin_cambios":
-                                stats["sin_cambios"] += 1
-                        except Exception as e:
-                            print(f"   ⚠️ Error guardando en BD: {e}")
+                        resultado, id_bd = insertar_o_actualizar_oferta(reg)  # Cambiado de 'registro' a 'reg'
+                        if resultado == "nuevo":
+                            stats["nuevos"] += 1
+                            reg["_es_nuevo"] = True  # Cambiado de 'registro' a 'reg'
+                            ids_procesados.append(id_bd)
+                        elif resultado == "actualizado":
+                            stats["actualizados"] += 1
+                            reg["_es_nuevo"] = False  # Cambiado de 'registro' a 'reg'
+                            ids_procesados.append(id_bd)
+                        elif resultado == "sin_cambios":
+                            stats["sin_cambios"] += 1
+                            reg["_es_nuevo"] = False  # Cambiado de 'registro' a 'reg'
+                            ids_procesados.append(id_bd)
                     else:
                         stats["nuevos"] += 1
+                        reg["_es_nuevo"] = True  # Agregar esta línea
                         print(f"   📝 {reg['puesto'][:50]}")
                     
                     data.append(reg)
@@ -428,6 +435,22 @@ def main():
         except Exception as e:
             print(f"   ⚠️ Error obteniendo stats: {e}")
     
+    # Notificar ofertas nuevas por Telegram
+    if NOTIFICACIONES_DISPONIBLES and stats["nuevos"] > 0:
+        print("\n📱 Enviando notificaciones...")
+        ofertas_nuevas = [r for r in data if r.get("_es_nuevo", False)]
+        if ofertas_nuevas:
+            notificar_nuevas_ofertas(ofertas_nuevas)
+        
+        # Enviar resumen
+        enviar_resumen_scraping({
+            "nuevos": stats["nuevos"],
+            "actualizados": stats["actualizados"],
+            "sin_cambios": stats["sin_cambios"],
+            "errores": stats["errores"],
+            "total": len(data)
+        })
+
     print(f"{'='*60}\n")
 
 if __name__ == "__main__":
