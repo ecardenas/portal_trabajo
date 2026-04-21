@@ -3,6 +3,8 @@ API REST para consultar ofertas de empleo SERVIR
 """
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import RedirectResponse
 from typing import Optional, List
 import sqlite3
 from datetime import datetime
@@ -12,6 +14,8 @@ app = FastAPI(
     description="API para consultar ofertas laborales del portal SERVIR",
     version="1.0.0"
 )
+
+app.mount("/static", StaticFiles(directory="web"), name="static")
 
 # Permitir CORS para frontend
 app.add_middleware(
@@ -34,16 +38,11 @@ def row_to_dict(row):
 
 @app.get("/")
 def root():
-    return {
-        "mensaje": "API Empleos SERVIR",
-        "version": "1.0.0",
-        "endpoints": {
-            "ofertas": "/ofertas",
-            "estadisticas": "/estadisticas",
-            "buscar": "/buscar",
-            "oferta_detalle": "/ofertas/{id}"
-        }
-    }
+    return RedirectResponse(url="/app")
+
+@app.get("/app")
+def app_web():
+    return RedirectResponse(url="/static/index.html")
 
 @app.get("/estadisticas")
 def obtener_estadisticas():
@@ -53,36 +52,35 @@ def obtener_estadisticas():
     
     stats = {}
     
-    cursor.execute("SELECT COUNT(*) FROM ofertas WHERE activo = 1")
-    stats["ofertas_activas"] = cursor.fetchone()[0]
+    cursor.execute("""SELECT COUNT(*) FROM ofertas 
+        WHERE date(substr(fecha_fin, 7, 4) || '-' || substr(fecha_fin, 4, 2) || '-' || substr(fecha_fin, 1, 2)) >= date('now')""")
+    stats["ofertas_vigentes"] = cursor.fetchone()[0]
     
     cursor.execute("SELECT COUNT(*) FROM ofertas")
     stats["ofertas_total"] = cursor.fetchone()[0]
     
-    cursor.execute("SELECT AVG(remuneracion) FROM ofertas WHERE activo = 1 AND remuneracion > 0")
+    cursor.execute("SELECT AVG(remuneracion) FROM ofertas WHERE remuneracion > 0")
     result = cursor.fetchone()[0]
     stats["remuneracion_promedio"] = round(result, 2) if result else 0
     
-    cursor.execute("SELECT MAX(remuneracion) FROM ofertas WHERE activo = 1")
+    cursor.execute("SELECT MAX(remuneracion) FROM ofertas")
     stats["remuneracion_maxima"] = cursor.fetchone()[0]
     
-    cursor.execute("SELECT MIN(remuneracion) FROM ofertas WHERE activo = 1 AND remuneracion > 0")
+    cursor.execute("SELECT MIN(remuneracion) FROM ofertas WHERE remuneracion > 0")
     stats["remuneracion_minima"] = cursor.fetchone()[0]
     
-    # Top 5 entidades con más ofertas
     cursor.execute("""
         SELECT entidad, COUNT(*) as cantidad 
-        FROM ofertas WHERE activo = 1 
+        FROM ofertas 
         GROUP BY entidad 
         ORDER BY cantidad DESC 
         LIMIT 5
     """)
     stats["top_entidades"] = [{"entidad": row[0], "cantidad": row[1]} for row in cursor.fetchall()]
     
-    # Top 5 ubicaciones
     cursor.execute("""
         SELECT ubicacion, COUNT(*) as cantidad 
-        FROM ofertas WHERE activo = 1 
+        FROM ofertas 
         GROUP BY ubicacion 
         ORDER BY cantidad DESC 
         LIMIT 5
@@ -122,7 +120,7 @@ def listar_ofertas(
     cursor.execute(f"""
         SELECT id, id_oferta, puesto, entidad, ubicacion, remuneracion, 
                vacantes, fecha_inicio, fecha_fin, link_postulacion,
-               numero_convocatoria, fecha_scraping
+               numero_convocatoria, activo, fecha_scraping
         FROM ofertas 
         {where_clause}
         ORDER BY {ordenar_por} {orden} NULLS LAST
@@ -159,12 +157,16 @@ def obtener_oferta(oferta_id: int):
 
 @app.get("/buscar")
 def buscar_ofertas(
-    q: Optional[str] = Query(None, description="Búsqueda en puesto, entidad o ubicación"),
+    q: Optional[str] = Query(None, description="Búsqueda por puesto"),
+    carrera: Optional[str] = Query(None, description="Filtrar por carrera o formación"),
+    especializacion: Optional[str] = Query(None, description="Filtrar por especialización"),
     ubicacion: Optional[str] = Query(None, description="Filtrar por ubicación"),
     entidad: Optional[str] = Query(None, description="Filtrar por entidad"),
-    remuneracion_min: Optional[float] = Query(None, description="Remuneración mínima"),
-    remuneracion_max: Optional[float] = Query(None, description="Remuneración máxima"),
-    vigente: Optional[bool] = Query(None, description="Solo ofertas vigentes"),
+    remuneracion: Optional[float] = Query(None, description="Valor de remuneración"),
+    remuneracion_op: Optional[str] = Query("gte", description="Operador: gte, lte, eq"),
+    estado: Optional[str] = Query("todos", description="todos, vigentes, cerradas"),
+    ordenar_por: str = Query("fecha_inicio", description="Campo para ordenar"),
+    orden: str = Query("desc", description="asc o desc"),
     pagina: int = Query(1, ge=1),
     limite: int = Query(20, ge=1, le=100)
 ):
@@ -172,12 +174,25 @@ def buscar_ofertas(
     conn = get_connection()
     cursor = conn.cursor()
     
-    conditions = ["activo = 1"]
+    conditions = []
+    if estado == "vigentes":
+        conditions.append("date(substr(fecha_fin, 7, 4) || '-' || substr(fecha_fin, 4, 2) || '-' || substr(fecha_fin, 1, 2)) >= date('now')")
+    elif estado == "cerradas":
+        conditions.append("date(substr(fecha_fin, 7, 4) || '-' || substr(fecha_fin, 4, 2) || '-' || substr(fecha_fin, 1, 2)) < date('now')")
+    # "todos" → sin filtro
     params = []
     
     if q:
-        conditions.append("(puesto LIKE ? OR entidad LIKE ? OR ubicacion LIKE ?)")
-        params.extend([f"%{q}%", f"%{q}%", f"%{q}%"])
+        conditions.append("puesto LIKE ?")
+        params.append(f"%{q}%")
+
+    if carrera:
+        conditions.append("formacion LIKE ?")
+        params.append(f"%{carrera}%")
+
+    if especializacion:
+        conditions.append("especializacion LIKE ?")
+        params.append(f"%{especializacion}%")
     
     if ubicacion:
         conditions.append("ubicacion LIKE ?")
@@ -187,16 +202,14 @@ def buscar_ofertas(
         conditions.append("entidad LIKE ?")
         params.append(f"%{entidad}%")
     
-    if remuneracion_min is not None:
-        conditions.append("remuneracion >= ?")
-        params.append(remuneracion_min)
+    if remuneracion is not None:
+        op_map = {"gte": ">=", "lte": "<=", "eq": "="}
+        sql_op = op_map.get(remuneracion_op, ">=")
+        conditions.append(f"remuneracion {sql_op} ?")
+        params.append(remuneracion)
     
-    if remuneracion_max is not None:
-        conditions.append("remuneracion <= ?")
-        params.append(remuneracion_max)
-    
-    if vigente:
-        conditions.append("date(substr(fecha_fin, 7, 4) || '-' || substr(fecha_fin, 4, 2) || '-' || substr(fecha_fin, 1, 2)) >= date('now')")
+    if not conditions:
+        conditions.append("1 = 1")
     
     where_clause = " AND ".join(conditions)
     
@@ -204,15 +217,28 @@ def buscar_ofertas(
     cursor.execute(f"SELECT COUNT(*) FROM ofertas WHERE {where_clause}", params)
     total = cursor.fetchone()[0]
     
+    # Mapeo seguro de ordenamiento (evita SQL injection y permite ordenar fechas dd/mm/yyyy)
+    order_map = {
+        "puesto": "puesto",
+        "entidad": "entidad",
+        "ubicacion": "ubicacion",
+        "remuneracion": "remuneracion",
+        "fecha_inicio": "date(substr(fecha_inicio, 7, 4) || '-' || substr(fecha_inicio, 4, 2) || '-' || substr(fecha_inicio, 1, 2))",
+        "fecha_fin": "date(substr(fecha_fin, 7, 4) || '-' || substr(fecha_fin, 4, 2) || '-' || substr(fecha_fin, 1, 2))",
+        "fecha_scraping": "fecha_scraping"
+    }
+    order_sql = order_map.get(ordenar_por, order_map["fecha_inicio"])
+    order_dir = "DESC" if orden.lower() == "desc" else "ASC"
+
     # Obtener ofertas
     offset = (pagina - 1) * limite
     cursor.execute(f"""
         SELECT id, id_oferta, puesto, entidad, ubicacion, remuneracion, 
                vacantes, fecha_inicio, fecha_fin, link_postulacion,
-               numero_convocatoria
+               numero_convocatoria, activo
         FROM ofertas 
         WHERE {where_clause}
-        ORDER BY remuneracion DESC NULLS LAST
+        ORDER BY {order_sql} {order_dir} NULLS LAST
         LIMIT ? OFFSET ?
     """, params + [limite, offset])
     
@@ -226,11 +252,15 @@ def buscar_ofertas(
         "limite": limite,
         "filtros_aplicados": {
             "q": q,
+            "carrera": carrera,
+            "especializacion": especializacion,
             "ubicacion": ubicacion,
             "entidad": entidad,
-            "remuneracion_min": remuneracion_min,
-            "remuneracion_max": remuneracion_max,
-            "vigente": vigente
+            "remuneracion": remuneracion,
+            "remuneracion_op": remuneracion_op,
+            "estado": estado,
+            "ordenar_por": ordenar_por,
+            "orden": order_dir.lower()
         },
         "ofertas": ofertas
     }

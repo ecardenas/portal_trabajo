@@ -14,9 +14,13 @@ try:
     from database import (
         init_database,
         insertar_o_actualizar_oferta,
-        marcar_ofertas_inactivas,
         obtener_estadisticas,
-        registrar_log_scraping
+        registrar_log_scraping,
+        id_oferta_en_bd,
+        existe_por_campos_tarjeta,
+        diagnosticar_falso_nuevo,
+        registrar_control_scraping,
+        obtener_ultimo_control_scraping,
     )
     BD_DISPONIBLE = True
     print("✅ Módulo de base de datos cargado correctamente")
@@ -36,20 +40,28 @@ except ImportError as e:
 
 URL = "https://app.servir.gob.pe/DifusionOfertasExterno/faces/consultas/ofertas_laborales.xhtml"
 OUTPUT = f"empleos_servir_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx"
+GENERAR_EXCEL = os.getenv("GENERAR_EXCEL", "false").lower() == "true"
 
 # ============================================================
-# CONFIGURACIÓN DE FILTROS PARA EXTRAER DETALLE
+# MODOS DE SCRAPING
+#   incremental (default): entra al detalle de cada registro,
+#     si el ID ya existe en BD → detiene la corrida (los más
+#     recientes están primero, así que todo lo siguiente ya existe)
+#   full: entra al detalle de TODOS los registros, guarda/actualiza
+#     todo. Lento pero completo.
+#   rapido: NO entra al detalle. Usa llave compuesta de campos
+#     de tarjeta (puesto+entidad+ubicacion+remuneracion+vacantes+
+#     convocatoria+fecha_inicio+fecha_fin). Si ya existe → skip.
+#     Si es nuevo → entra al detalle para obtener id_oferta y datos.
+#     Ideal para carga inicial rápida.
 # ============================================================
-EXTRAER_DETALLE = True  # True = extraer detalle, False = solo datos básicos
-CONDICIONES_DETALLE = []  # VACÍO = extrae detalle de TODOS
-CONDICIONES_AND = False  # True = AND, False = OR
-max_paginas = 10  # None = TODAS las páginas
+SCRAPER_MODE = os.getenv("SCRAPER_MODE", "incremental").lower()
+max_paginas = 100  # None = TODAS las páginas
 # ============================================================
 
 print(f"\n{'='*60}")
 print(f"🔧 CONFIGURACIÓN:")
-print(f"   - Extraer detalle: {EXTRAER_DETALLE}")
-print(f"   - Condiciones: {CONDICIONES_DETALLE if CONDICIONES_DETALLE else 'TODAS'}")
+print(f"   - Modo: {SCRAPER_MODE.upper()}")
 print(f"   - Máx páginas: {max_paginas if max_paginas else 'SIN LÍMITE'}")
 print(f"{'='*60}\n")
 
@@ -74,45 +86,6 @@ def extraer_remuneracion_num(texto):
             return None
     return None
 
-def cumple_condicion(registro, condicion):
-    """Evalúa si un registro cumple una condición"""
-    campo = condicion.get("campo")
-    operador = condicion.get("operador")
-    valor = condicion.get("valor")
-    
-    valor_registro = registro.get(campo)
-    if valor_registro is None:
-        return False
-    
-    if operador == ">=":
-        return valor_registro >= valor
-    elif operador == ">":
-        return valor_registro > valor
-    elif operador == "<=":
-        return valor_registro <= valor
-    elif operador == "<":
-        return valor_registro < valor
-    elif operador == "==":
-        return valor_registro == valor
-    elif operador == "contiene":
-        return valor.upper() in str(valor_registro).upper()
-    elif operador == "no_contiene":
-        return valor.upper() not in str(valor_registro).upper()
-    
-    return False
-
-def debe_extraer_detalle(registro):
-    """Determina si se debe extraer el detalle de un registro según las condiciones"""
-    if not EXTRAER_DETALLE:
-        return False
-    
-    if not CONDICIONES_DETALLE:
-        return True
-    
-    if CONDICIONES_AND:
-        return all(cumple_condicion(registro, c) for c in CONDICIONES_DETALLE)
-    else:
-        return any(cumple_condicion(registro, c) for c in CONDICIONES_DETALLE)
 
 def extraer_detalle_oferta(page):
     """Extrae información adicional de la página de detalle"""
@@ -125,13 +98,16 @@ def extraer_detalle_oferta(page):
             m = re.search(patron, texto_pagina, re.IGNORECASE)
             return limpiar(m.group(1)) if m else ""
         
-        # Extraer ID único de la oferta (N° XXXXXX)
+        # Extraer ID único de la oferta desde el panel lateral
+        # Está en: span.sub-titulo-2 → "N° 779150"
         try:
-            patron_id = r"N[°º]\s*(\d{5,7})"
-            m = re.search(patron_id, texto_pagina)
-            if m:
-                detalle["id_oferta"] = m.group(1)
-                print(f"       🆔 ID Oferta: {m.group(1)}")
+            id_el = page.locator(".cuadro-seccion-lat span").first
+            if id_el.count() > 0:
+                id_texto = id_el.inner_text().strip()
+                print(f"       🔬 DEBUG id_texto: '{id_texto}'")
+                m = re.search(r"(\d{5,7})", id_texto)
+                if m:
+                    detalle["id_oferta"] = m.group(1)
         except:
             pass
         
@@ -176,10 +152,26 @@ def main():
         except Exception as e:
             print(f"⚠️ Error inicializando BD: {e}")
     
+
     fecha_inicio = datetime.now().isoformat()
     ids_procesados = []
-    stats = {"nuevos": 0, "actualizados": 0, "sin_cambios": 0, "errores": 0}
+    stats = {"nuevos": 0, "actualizados": 0, "sin_cambios": 0, "errores": 0, "falsos_nuevos": 0}
     data = []
+
+    # --- FLUJO INCREMENTAL: obtener fecha límite ---
+    fecha_limite_incremental = None
+    if SCRAPER_MODE == "incremental" and BD_DISPONIBLE:
+        ultimo_control = obtener_ultimo_control_scraping("incremental")
+        if ultimo_control and ultimo_control.get("fecha_inicio_max"):
+            try:
+                # fecha_inicio_max está en formato texto, convertir a datetime
+                fecha_max = datetime.strptime(ultimo_control["fecha_inicio_max"], "%d/%m/%Y")
+                from datetime import timedelta
+                fecha_limite_incremental = fecha_max - timedelta(days=1)
+                print(f"   ⏳ Modo incremental: fecha límite de scraping = {fecha_limite_incremental.strftime('%d/%m/%Y')}")
+            except Exception as e:
+                print(f"   ⚠️ Error interpretando fecha_inicio_max del control: {e}")
+
 
     print(f"\n{'='*60}")
     print(f"🚀 SCRAPER SERVIR - {datetime.now().strftime('%Y-%m-%d %H:%M')}")
@@ -199,7 +191,7 @@ def main():
             page = context.new_page()
             
             # Configurar timeouts más largos
-            page.set_default_timeout(120000)  # 2 minutos
+            page.set_default_timeout(180000)  # 3 minutos
             
             print(f"   🌐 Navegando a {URL[:50]}...")
             
@@ -207,7 +199,7 @@ def main():
             max_intentos = 3
             for intento in range(max_intentos):
                 try:
-                    page.goto(URL, wait_until="networkidle", timeout=120000)  # Cambiado de 60000 a 120000
+                    page.goto(URL, wait_until="networkidle", timeout=180000)  # 3 minutos
                     print("   ✅ Página cargada")
                     break
                 except Exception as e:
@@ -227,10 +219,10 @@ def main():
 
                 # Esperar a que las tarjetas carguen
                 try:
-                    page.wait_for_selector(".cuadro-vacantes", timeout=10000)
+                    page.wait_for_selector(".cuadro-vacantes", timeout=30000)
                 except:
                     print("   ⚠️ No se encontraron tarjetas, esperando más...")
-                    page.wait_for_timeout(3000)
+                    page.wait_for_timeout(5000)
 
                 cards = page.locator(".cuadro-vacantes").all()
                 num_cards = len(cards)
@@ -273,61 +265,143 @@ def main():
                         print(f"   ❌ Error tarjeta {i}: {e}")
                         stats["errores"] += 1
 
-                # Extraer detalle de cada registro que cumpla condiciones
+                # Procesar cada registro según modo
+                stop_scraping = False
                 for reg in registros_pagina:
-                    if debe_extraer_detalle(reg):
-                        idx = reg["idx"]
+                    # --- FLUJO INCREMENTAL: detener si se alcanza la fecha límite ---
+                    if SCRAPER_MODE == "incremental" and fecha_limite_incremental:
+                        fecha_inicio_reg = reg.get("fecha_inicio")
                         try:
-                            cards = page.locator(".cuadro-vacantes").all()
-                            if idx < len(cards):
-                                btn = cards[idx].locator("button.btn-primary").first
-                                if btn.count() > 0:
-                                    print(f"    📋 Extrayendo detalle: {reg['puesto'][:40]}...")
-                                    btn.click()
-                                    page.wait_for_timeout(2000)
-                                    
-                                    detalle = extraer_detalle_oferta(page)
-                                    reg.update(detalle)
-                                    
-                                    if detalle.get("link_postulacion"):
-                                        print(f"       🔗 Link: {detalle['link_postulacion'][:50]}...")
-                                    
+                            fecha_inicio_dt = datetime.strptime(fecha_inicio_reg, "%d/%m/%Y")
+                            if fecha_inicio_dt <= fecha_limite_incremental:
+                                print(f"       ⏹️  [INCREMENTAL] Fecha de inicio {fecha_inicio_reg} alcanzó o pasó la fecha límite {fecha_limite_incremental.strftime('%d/%m/%Y')} → deteniendo corrida")
+                                stop_scraping = True
+                                break
+                        except Exception as e:
+                            print(f"       ⚠️  [INCREMENTAL] Error interpretando fecha_inicio '{fecha_inicio_reg}': {e}")
+
+                    idx = reg["idx"]
+                    del reg["idx"]
+
+                    # ── MODO RÁPIDO ──────────────────────────────────────────
+                    # 1) Buscar por campos de tarjeta
+                    # 2) 0 resultados → entrar al detalle, INSERT/UPDATE por id_oferta
+                    # 3) 1 resultado  → skip (ya existe)
+                    # 4) >1 resultados → log de alerta, skip
+                    if SCRAPER_MODE == "rapido" and BD_DISPONIBLE:
+                        coincidencias = existe_por_campos_tarjeta(reg)  # debe retornar lista/count
+                        if coincidencias == 1:
+                            stats["sin_cambios"] += 1
+                            print(f"    ⏭️  [RAPIDO] 1 coincidencia exacta → skip: {reg['puesto'][:40]}")
+                            continue
+                        elif coincidencias > 1:
+                            stats["sin_cambios"] += 1
+                            print(f"    ⚠️  [RAPIDO] {coincidencias} coincidencias para: {reg['puesto'][:40]} - {reg['entidad'][:30]} → REVISAR DUPLICADOS en BD")
+                            continue
+                        # 0 coincidencias → entra al detalle
+                        print(f"    🆕 [RAPIDO] Sin coincidencia en tarjeta → entrando al detalle...")
+
+                    # ── ENTRAR AL DETALLE (rápido/full/incremental) ──────────
+                    try:
+                        cards = page.locator(".cuadro-vacantes").all()
+                        if idx < len(cards):
+                            btn = cards[idx].locator("button.btn-primary").first
+                            if btn.count() > 0:
+                                print(f"    🔍 [{SCRAPER_MODE.upper()}] Detalle {idx+1}/{num_cards}: {reg['puesto'][:35]} - {reg['entidad'][:30]}")
+                                btn.click()
+                                page.wait_for_timeout(4000)
+
+                                detalle = extraer_detalle_oferta(page)
+                                id_oferta = detalle.get("id_oferta")
+                                if id_oferta:
+                                    print(f"       🆔 ID Oferta: {id_oferta}")
+
+                                reg.update(detalle)  # ← PRIMERO actualizar reg
+
+                                # VALIDACIÓN: sin id_oferta no se guarda
+                                if not reg.get("id_oferta"):
+                                    print(f"       ⛔ NO se capturó id_oferta → SALTANDO registro")
+                                    stats["errores"] += 1
                                     volver_btn = page.get_by_text("Volver a la lista", exact=False).first
                                     if volver_btn.count() > 0:
                                         volver_btn.click()
-                                        page.wait_for_timeout(2000)
+                                        page.wait_for_timeout(4000)
                                     else:
                                         page.go_back()
-                                        page.wait_for_timeout(2000)
-                        except Exception as e:
-                            print(f"      ⚠️ Error en detalle: {e}")
-                    
-                    del reg["idx"]
-                    
-                    # Guardar en base de datos
+                                        page.wait_for_timeout(4000)
+                                    continue
+
+                                # ── MODO INCREMENTAL: si id_oferta ya existe → detener ──
+                                if SCRAPER_MODE == "incremental" and BD_DISPONIBLE:
+                                    if id_oferta_en_bd(reg["id_oferta"]):
+                                        print(f"       ⏹️  [INCREMENTAL] id_oferta {reg['id_oferta']} ya existe → deteniendo corrida")
+                                        volver_btn = page.get_by_text("Volver a la lista", exact=False).first
+                                        if volver_btn.count() > 0:
+                                            volver_btn.click()
+                                        else:
+                                            page.go_back()
+                                        page.wait_for_timeout(4000)
+                                        stop_scraping = True
+                                        break
+
+                                if detalle.get("link_postulacion"):
+                                    print(f"       🔗 Link: {detalle['link_postulacion'][:50]}...")
+
+                                volver_btn = page.get_by_text("Volver a la lista", exact=False).first
+                                if volver_btn.count() > 0:
+                                    volver_btn.click()
+                                    page.wait_for_timeout(4000)
+                                else:
+                                    page.go_back()
+                                    page.wait_for_timeout(4000)
+                    except Exception as e:
+                        print(f"      ⚠️ Error en detalle: {e}")
+                        stats["errores"] += 1
+                        data.append(reg)
+                        continue
+
+                    # ── GUARDAR EN BD (INSERT/UPDATE basado en id_oferta) ────
                     if BD_DISPONIBLE:
-                        resultado, id_bd = insertar_o_actualizar_oferta(reg)  # Cambiado de 'registro' a 'reg'
+                        resultado, id_bd = insertar_o_actualizar_oferta(reg)
+                        id_oferta = reg.get("id_oferta", "sin-id")
+
                         if resultado == "nuevo":
                             stats["nuevos"] += 1
-                            reg["_es_nuevo"] = True  # Cambiado de 'registro' a 'reg'
+                            reg["_es_nuevo"] = True
                             ids_procesados.append(id_bd)
+                            if SCRAPER_MODE == "rapido":
+                                print(f"       ✅ INSERTADO — tarjeta nueva + id_oferta {id_oferta} no existía en BD (id_bd={id_bd})")
+                            else:
+                                print(f"       ✅ INSERTADO (id_oferta={id_oferta}, id_bd={id_bd})")
+
                         elif resultado == "actualizado":
                             stats["actualizados"] += 1
-                            reg["_es_nuevo"] = False  # Cambiado de 'registro' a 'reg'
+                            reg["_es_nuevo"] = False
                             ids_procesados.append(id_bd)
+                            if SCRAPER_MODE == "rapido":
+                                print(f"       🔄 ACTUALIZADO — tarjeta cambió pero id_oferta {id_oferta} ya existía en BD (id_bd={id_bd})")
+                            else:
+                                print(f"       🔄 ACTUALIZADO (id_oferta={id_oferta}, id_bd={id_bd})")
+
                         elif resultado == "sin_cambios":
                             stats["sin_cambios"] += 1
-                            reg["_es_nuevo"] = False  # Cambiado de 'registro' a 'reg'
+                            reg["_es_nuevo"] = False
                             ids_procesados.append(id_bd)
-                    else:
-                        stats["nuevos"] += 1
-                        reg["_es_nuevo"] = True  # Agregar esta línea
-                        print(f"   📝 {reg['puesto'][:50]}")
-                    
-                    data.append(reg)
+                            if SCRAPER_MODE == "rapido":
+                                print(f"       ⏭️  SIN CAMBIOS — id_oferta {id_oferta} existe y datos iguales (id_bd={id_bd})")
+                            else:
+                                print(f"       ⏭️  SIN CAMBIOS (id_oferta={id_oferta}, id_bd={id_bd})")
+
+                    # ...existing code...
+
+                if stop_scraping:
+                    print("\n⏹️ Corrida incremental finalizada: todos los nuevos registros guardados")
+                    break
+
 
                 # Siguiente página
-                if max_paginas and pagina_actual >= max_paginas:
+                # En modo incremental, no considerar el límite de páginas
+                if SCRAPER_MODE != "incremental" and max_paginas and pagina_actual >= max_paginas:
                     print(f"\n⏹️ Límite de {max_paginas} páginas alcanzado")
                     break
 
@@ -347,7 +421,7 @@ def main():
                         
                     print(f"   ➡️ Pasando a página {pagina_actual + 1}...")
                     btn.click()
-                    page.wait_for_timeout(2500)
+                    page.wait_for_timeout(4000)
                     pagina_actual += 1
                 except Exception as e:
                     print(f"\n⚠️ Fin de paginación: {e}")
@@ -356,19 +430,38 @@ def main():
             print("\n🔒 Cerrando navegador...")
             browser.close()
 
-        # Marcar ofertas inactivas
+
+        # Registrar log de scraping
         if BD_DISPONIBLE:
-            try:
-                marcar_ofertas_inactivas(ids_procesados)
-                registrar_log_scraping(
-                    fecha_inicio, 
-                    stats["nuevos"], 
-                    stats["actualizados"], 
-                    len(ids_procesados),
-                    "exitoso"
+            registrar_log_scraping(
+                fecha_inicio, 
+                stats["nuevos"], 
+                stats["actualizados"], 
+                len(ids_procesados),
+                "exitoso"
+            )
+
+            # Registrar control incremental (si corresponde)
+            if SCRAPER_MODE == "incremental":
+                # Calcular fechas mín y máx de inicio de los registros procesados
+                fechas_inicio = [r.get("fecha_inicio") for r in data if r.get("fecha_inicio")]
+                fechas_inicio_dt = []
+                for f in fechas_inicio:
+                    try:
+                        fechas_inicio_dt.append(datetime.strptime(f, "%d/%m/%Y"))
+                    except:
+                        pass
+                if fechas_inicio_dt:
+                    fecha_min = min(fechas_inicio_dt).strftime("%d/%m/%Y")
+                    fecha_max = max(fechas_inicio_dt).strftime("%d/%m/%Y")
+                else:
+                    fecha_min = fecha_max = None
+                registrar_control_scraping(
+                    modo="incremental",
+                    registros_extraidos=stats["nuevos"] + stats["actualizados"],
+                    fecha_inicio_min=fecha_min,
+                    fecha_inicio_max=fecha_max
                 )
-            except Exception as e:
-                print(f"⚠️ Error finalizando BD: {e}")
 
     except Exception as e:
         print(f"\n❌ ERROR CRÍTICO: {e}")
@@ -386,31 +479,34 @@ def main():
             print(f"\n💾 Intentando guardar {len(data)} registros recopilados...")
 
     # Generar Excel
-    print(f"\n📊 Generando Excel con {len(data)} registros...")
-    df = pd.DataFrame(data)
-    
-    if not df.empty:
-        try:
-            if "vacantes" in df.columns:
-                df["vacantes"] = df["vacantes"].astype(str).str.extract(r"(\d+)", expand=False)
-                df["vacantes"] = pd.to_numeric(df["vacantes"], errors="coerce")
-            
-            if "fecha_fin" in df.columns:
-                fecha_fin_dt = pd.to_datetime(df["fecha_fin"], format="%d/%m/%Y", errors="coerce")
-                hoy = pd.Timestamp(datetime.now().date())
-                df["dias_restantes"] = (fecha_fin_dt - hoy).dt.days
-                df["vigente"] = df["dias_restantes"] >= 0
-            
-            df = df.sort_values(["remuneracion", "dias_restantes"], ascending=[False, True], na_position="last")
-        except Exception as e:
-            print(f"⚠️ Error procesando DataFrame: {e}")
+    if GENERAR_EXCEL:
+        print(f"\n📊 Generando Excel con {len(data)} registros...")
+        df = pd.DataFrame(data)
+        
+        if not df.empty:
+            try:
+                if "vacantes" in df.columns:
+                    df["vacantes"] = df["vacantes"].astype(str).str.extract(r"(\d+)", expand=False)
+                    df["vacantes"] = pd.to_numeric(df["vacantes"], errors="coerce")
+                
+                if "fecha_fin" in df.columns:
+                    fecha_fin_dt = pd.to_datetime(df["fecha_fin"], format="%d/%m/%Y", errors="coerce")
+                    hoy = pd.Timestamp(datetime.now().date())
+                    df["dias_restantes"] = (fecha_fin_dt - hoy).dt.days
+                    df["vigente"] = df["dias_restantes"] >= 0
+                
+                df = df.sort_values(["remuneracion", "dias_restantes"], ascending=[False, True], na_position="last")
+            except Exception as e:
+                print(f"⚠️ Error procesando DataFrame: {e}")
 
-    try:
-        with pd.ExcelWriter(OUTPUT, engine="openpyxl") as writer:
-            df.to_excel(writer, sheet_name="Ofertas", index=False)
-        print(f"✅ Excel guardado: {OUTPUT}")
-    except Exception as e:
-        print(f"❌ Error guardando Excel: {e}")
+        try:
+            with pd.ExcelWriter(OUTPUT, engine="openpyxl") as writer:
+                df.to_excel(writer, sheet_name="Ofertas", index=False)
+            print(f"✅ Excel guardado: {OUTPUT}")
+        except Exception as e:
+            print(f"❌ Error guardando Excel: {e}")
+    else:
+        print("\n📊 Generación de Excel desactivada (GENERAR_EXCEL=false)")
 
     # Resumen final
     print(f"\n{'='*60}")
@@ -419,9 +515,12 @@ def main():
     print(f"   ✅ Nuevos:        {stats['nuevos']}")
     print(f"   🔄 Actualizados:  {stats['actualizados']}")
     print(f"   ⏸️  Sin cambios:   {stats['sin_cambios']}")
+    if stats['falsos_nuevos'] > 0:
+        print(f"   🔎 Falsos nuevos: {stats['falsos_nuevos']} (tarjeta no coincidió pero id_oferta ya existía)")
     print(f"   ❌ Errores:       {stats['errores']}")
     print(f"   📦 Total:         {len(data)}")
-    print(f"\n   📁 Excel: {OUTPUT}")
+    if GENERAR_EXCEL:
+        print(f"\n   📁 Excel: {OUTPUT}")
     
     if BD_DISPONIBLE:
         print(f"   🗄️  BD: empleos_servir.db")

@@ -4,3 +4,9 @@ openpyxl
 fastapi
 uvicorn
 requests
+pypdf
+reportlab
+Pillow
+python-multipart
+jinja2
+aiofiles

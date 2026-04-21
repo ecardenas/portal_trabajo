@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Empleos SERVIR - Consulta Web</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-inner">
+      <span class="hero-eyebrow">Consulta pública</span>
+      <h1>Empleos SERVIR</h1>
+      <p>
+        Explora convocatorias, aplica filtros avanzados y revisa el detalle de cada oferta
+        en una experiencia optimizada para web, tablet y móvil.
+      </p>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="panel">
+      <div class="stats-grid">
+        <article class="stat-card">
+          <span class="stat-label">Ofertas vigentes</span>
+          <strong class="stat-value" id="sActivas">-</strong>
+        </article>
+        <article class="stat-card">
+          <span class="stat-label">Total de ofertas</span>
+          <strong class="stat-value" id="sTotal">-</strong>
+        </article>
+        <article class="stat-card">
+          <span class="stat-label">Remuneración promedio</span>
+          <strong class="stat-value" id="sProm">-</strong>
+        </article>
+        <article class="stat-card">
+          <span class="stat-label">Remuneración máxima</span>
+          <strong class="stat-value" id="sMax">-</strong>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel filters-card" id="filtersCard">
+      <div class="filters-head">
+        <div>
+          <h2 class="section-title">Filtros de búsqueda</h2>
+          <p class="section-subtitle">
+            Refina los resultados por puesto, entidad, ubicación, remuneración y estado.
+          </p>
+        </div>
+
+        <div class="filters-head-actions">
+          <span id="activeFiltersChip" class="active-filters-chip is-hidden">Filtros activos (0)</span>
+          <button type="button" id="toggleFilters" class="ghost filters-toggle" aria-expanded="true">
+            Ocultar filtros
+          </button>
+        </div>
+      </div>
+
+      <div class="filters-grid">
+        <div class="field col-4">
+          <label for="q">Puesto</label>
+          <div class="input-wrap">
+            <input id="q" class="filter-control" type="text" placeholder="Ej. Analista, Especialista, Asistente" />
+          </div>
+        </div>
+
+        <div class="field col-4">
+          <label for="carrera">Carrera o formación</label>
+          <div class="input-wrap">
+            <input id="carrera" class="filter-control" type="text" placeholder="Ej. Derecho, Ingeniería, Economía" />
+          </div>
+        </div>
+
+        <div class="field col-4 hide-mobile">
+          <label for="especializacion">Especialización</label>
+          <div class="input-wrap">
+            <input id="especializacion" class="filter-control" type="text" placeholder="Ej. Contrataciones, TI, Gestión pública" />
+          </div>
+        </div>
+
+        <div class="field col-4">
+          <label for="ubicacion">Ubicación</label>
+          <div class="input-wrap">
+            <input id="ubicacion" class="filter-control" type="text" placeholder="Ej. Lima, Cusco, Arequipa" />
+          </div>
+        </div>
+
+        <div class="field col-4">
+          <label for="entidad">Entidad</label>
+          <div class="input-wrap">
+            <input id="entidad" class="filter-control" type="text" placeholder="Ej. SERVIR, MTC, MINSA" />
+          </div>
+        </div>
+
+        <div class="field col-4 hide-mobile">
+          <label for="estado">Estado</label>
+          <div class="select-wrap">
+            <select id="estado" class="filter-control">
+              <option value="todos" selected>Todos</option>
+              <option value="vigentes">Vigentes</option>
+              <option value="cerradas">Cerradas</option>
+            </select>
+          </div>
+        </div>
+
+
+        <div class="field col-6">
+          <label>Remuneración</label>
+          <div class="sueldo-group">
+            <div class="select-wrap">
+              <select id="remOp" class="filter-control">
+                <option value="gte">Mayor o igual que</option>
+                <option value="lte">Menor o igual que</option>
+                <option value="eq">Igual a</option>
+              </select>
+            </div>
+            <div class="input-wrap">
+              <input id="remVal" class="filter-control" type="number" placeholder="Monto en soles" />
+            </div>
+          </div>
+        </div>
+
+        <div class="field col-6 field-actions">
+          <label>&nbsp;</label>
+          <div class="actions">
+            <button id="btnBuscar" type="button">Buscar</button>
+            <button id="btnLimpiar" type="button" class="ghost">Limpiar</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel results-panel">
+      <div class="results-head">
+        <div>
+          <h2 class="section-title">Resultados</h2>
+          <p class="section-subtitle">Consulta las convocatorias encontradas y abre el detalle de cada una.</p>
+        </div>
+
+        <div class="results-meta">
+          <span id="totalResultados">0 registros</span>
+          <span id="resultsRange">Sin resultados</span>
+          <div class="order-control-mobile hide-desktop">
+            <label for="ordenar" style="font-size:13px;font-weight:600;">Ordenar por</label>
+            <div class="select-wrap">
+              <select id="ordenar" class="filter-control">
+                <option value="remuneracion">Remuneración</option>
+                <option value="puesto">Puesto</option>
+                <option value="fecha_fin">Fecha de fin</option>
+                <option value="entidad">Entidad</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th class="sortable" data-sort="puesto">Puesto <span class="sort-ind"></span></th>
+              <th class="sortable" data-sort="entidad">Entidad <span class="sort-ind"></span></th>
+              <th class="sortable" data-sort="ubicacion">Ubicación <span class="sort-ind"></span></th>
+              <th class="sortable" data-sort="remuneracion">Remuneración <span class="sort-ind"></span></th>
+              <th class="sortable" data-sort="fecha_inicio">Inicio <span class="sort-ind"></span></th>
+              <th class="sortable" data-sort="fecha_fin">Fin <span class="sort-ind"></span></th>
+              <th>Estado</th>
+              <th>Etiquetas</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+
+      <div id="cardsResults" class="cards-results"></div>
+
+      <div class="pager">
+        <button id="prev" type="button" class="ghost">Anterior</button>
+        <span id="pageInfo">Página 1 de 1</span>
+        <button id="next" type="button" class="ghost">Siguiente</button>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="detalleDialog">
+    <article>
+      <header>
+        <div class="dialog-title-wrap">
+          <span class="dialog-eyebrow">Detalle de convocatoria</span>
+          <h3 id="dPuesto">Detalle</h3>
+        </div>
+        <button id="cerrarDetalle" type="button">Cerrar</button>
+      </header>
+
+      <div id="detalleBody"></div>
+    </article>
+  </dialog>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
