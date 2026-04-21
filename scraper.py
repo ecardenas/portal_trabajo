@@ -56,7 +56,7 @@ GENERAR_EXCEL = os.getenv("GENERAR_EXCEL", "false").lower() == "true"
 #     Ideal para carga inicial rápida.
 # ============================================================
 SCRAPER_MODE = os.getenv("SCRAPER_MODE", "incremental").lower()
-max_paginas = 100  # None = TODAS las páginas
+max_paginas = 150  # None = TODAS las páginas
 # ============================================================
 
 print(f"\n{'='*60}")

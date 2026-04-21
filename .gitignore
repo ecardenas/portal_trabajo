@@ -1,5 +1,5 @@
 # Base de datos local (se maneja via artifacts en GitHub)
-empleos_servir.db
+# empleos_servir.db
 
 # Archivos Excel generados
 empleos_servir_*.xlsx
