@@ -56,7 +56,7 @@ GENERAR_EXCEL = os.getenv("GENERAR_EXCEL", "false").lower() == "true"
 #     Ideal para carga inicial rápida.
 # ============================================================
 SCRAPER_MODE = os.getenv("SCRAPER_MODE", "incremental").lower()
-max_paginas = 150  # None = TODAS las páginas
+max_paginas = None  # None = TODAS las páginas
 # ============================================================
 
 print(f"\n{'='*60}")
@@ -113,16 +113,37 @@ def extraer_detalle_oferta(page):
         
         # Extraer link de postulación
         try:
-            link_el = page.locator("a[href*='http']").filter(has_text=re.compile(r"http", re.IGNORECASE)).first
-            if link_el.count() > 0:
-                detalle["link_postulacion"] = link_el.get_attribute("href")
-            else:
+            # Buscar el <a> dentro de <span class="detalle-sp">
+            span_detalle = page.locator('span.detalle-sp')
+            if span_detalle.count() > 0:
+                a_tag = span_detalle.locator('a').first
+                if a_tag.count() > 0:
+                    link_text = a_tag.inner_text().strip()
+                    if link_text:
+                        detalle["link_postulacion"] = link_text
+                    else:
+                        href = a_tag.get_attribute('href')
+                        if href:
+                            detalle["link_postulacion"] = href
+            # Fallback: buscar cualquier <a> con http/www en texto o href
+            if not detalle.get("link_postulacion"):
+                for a in page.locator('a').all():
+                    href = a.get_attribute('href') or ''
+                    text = a.inner_text().strip() if hasattr(a, 'inner_text') else ''
+                    if (href and href != '#' and (href.startswith('http') or href.startswith('www.'))):
+                        detalle["link_postulacion"] = href
+                        break
+                    elif (href == '#' or not href) and (text.startswith('http') or text.startswith('www.')):
+                        detalle["link_postulacion"] = text
+                        break
+            # Fallback: buscar en el texto plano
+            if not detalle.get("link_postulacion"):
                 patron_link = r"DETALLE\s*:?\s*(https?://[^\s]+)"
                 m = re.search(patron_link, texto_pagina, re.IGNORECASE)
                 if m:
                     detalle["link_postulacion"] = m.group(1)
-        except:
-            pass
+        except Exception as e:
+            print(f"      ❌ Error extrayendo link_postulacion: {e}")
         
         detalle["experiencia"] = extraer("EXPERIENCIA")
         detalle["formacion"] = extraer("FORMACIÓN ACADÉMICA - PERFIL")

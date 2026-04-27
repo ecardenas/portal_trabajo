@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Empleos SERVIR - Consulta Web</title>
+  <title>Ofertas Laborales CAS - Consulta Web</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link
@@ -23,13 +23,21 @@
 </head>
 <body>
   <header class="hero">
-    <div class="hero-inner">
-      <span class="hero-eyebrow">Consulta pública</span>
-      <h1>Empleos SERVIR</h1>
-      <p>
-        Explora convocatorias, aplica filtros avanzados y revisa el detalle de cada oferta
-        en una experiencia optimizada para web, tablet y móvil.
-      </p>
+    <div class="hero-inner hero-flex">
+      <div>
+        <span class="hero-eyebrow">Consulta pública</span>
+        <h1 class="hero-title-flex">
+          Ofertas Laborales CAS
+          <a href="/static/privado/login.html" class="user-icon-btn hero-login-btn" title="Iniciar sesión">
+            <img src="/static/img/user_off.png" alt="Iniciar sesión" class="user-avatar" width="32" height="32" />
+          </a>
+        </h1>
+        <p>
+          Solo se muestran las convocatorias laborales del Estado que <strong>vencen en los próximos 30 días</strong>.<br>
+          Si deseas acceder a <strong>todas las convocatorias</strong>, filtros avanzados y alertas personalizadas, <br>
+          <a href="/static/privado/login.html" class="link-accent">suscríbete a la versión privada</a>.
+        </p>
+      </div>
     </div>
   </header>
 
@@ -73,70 +81,31 @@
       </div>
 
       <div class="filters-grid">
-        <div class="field col-4">
-          <label for="q">Puesto</label>
+        <div class="field col-6">
+          <label for="puesto" style="display:flex;align-items:center;gap:6px;position:relative;">
+            Descripción de la convocatoria
+            <button type="button" id="descHelpBtn" class="help-icon-btn" tabindex="0" aria-label="¿Cómo buscar?">
+              <span class="help-icon">?</span>
+              <span class="tooltip">Ingrese un texto de <b>mínimo 5 caracteres</b> para buscar por el <b>nombre del puesto</b> o por la <b>carrera o formación</b> requerida en la convocatoria.<br>Ejemplo: "Ingeniería", "Derecho", "Analista".</span>
+            </button>
+          </label>
           <div class="input-wrap">
-            <input id="q" class="filter-control" type="text" placeholder="Ej. Analista, Especialista, Asistente" />
+            <input id="puesto" class="filter-control" type="text" placeholder="Ej. Analista, Derecho, Ingeniería" />
           </div>
         </div>
-
-        <div class="field col-4">
-          <label for="carrera">Carrera o formación</label>
-          <div class="input-wrap">
-            <input id="carrera" class="filter-control" type="text" placeholder="Ej. Derecho, Ingeniería, Economía" />
-          </div>
-        </div>
-
-        <div class="field col-4 hide-mobile">
-          <label for="especializacion">Especialización</label>
-          <div class="input-wrap">
-            <input id="especializacion" class="filter-control" type="text" placeholder="Ej. Contrataciones, TI, Gestión pública" />
-          </div>
-        </div>
-
-        <div class="field col-4">
-          <label for="ubicacion">Ubicación</label>
+        <div class="field col-6">
+          <label for="ubicacion" style="display:flex;align-items:center;gap:6px;position:relative;">
+            Ubicación
+            <button type="button" id="ubicacionHelpBtn" class="help-icon-btn" tabindex="0" aria-label="¿Cómo buscar ubicación?">
+              <span class="help-icon">?</span>
+              <span class="tooltip">Ingrese una ciudad, provincia o región de <b>mínimo 3 caracteres</b> para filtrar las convocatorias por ubicación geográfica.<br>Ejemplo: "Lima", "Cusco", "Arequipa".</span>
+            </button>
+          </label>
           <div class="input-wrap">
             <input id="ubicacion" class="filter-control" type="text" placeholder="Ej. Lima, Cusco, Arequipa" />
           </div>
         </div>
-
-        <div class="field col-4">
-          <label for="entidad">Entidad</label>
-          <div class="input-wrap">
-            <input id="entidad" class="filter-control" type="text" placeholder="Ej. SERVIR, MTC, MINSA" />
-          </div>
-        </div>
-
-        <div class="field col-4 hide-mobile">
-          <label for="estado">Estado</label>
-          <div class="select-wrap">
-            <select id="estado" class="filter-control">
-              <option value="todos" selected>Todos</option>
-              <option value="vigentes">Vigentes</option>
-              <option value="cerradas">Cerradas</option>
-            </select>
-          </div>
-        </div>
-
-
-        <div class="field col-6">
-          <label>Remuneración</label>
-          <div class="sueldo-group">
-            <div class="select-wrap">
-              <select id="remOp" class="filter-control">
-                <option value="gte">Mayor o igual que</option>
-                <option value="lte">Menor o igual que</option>
-                <option value="eq">Igual a</option>
-              </select>
-            </div>
-            <div class="input-wrap">
-              <input id="remVal" class="filter-control" type="number" placeholder="Monto en soles" />
-            </div>
-          </div>
-        </div>
-
-        <div class="field col-6 field-actions">
+        <div class="field col-12 field-actions">
           <label>&nbsp;</label>
           <div class="actions">
             <button id="btnBuscar" type="button">Buscar</button>
@@ -179,9 +148,7 @@
               <th class="sortable" data-sort="entidad">Entidad <span class="sort-ind"></span></th>
               <th class="sortable" data-sort="ubicacion">Ubicación <span class="sort-ind"></span></th>
               <th class="sortable" data-sort="remuneracion">Remuneración <span class="sort-ind"></span></th>
-              <th class="sortable" data-sort="fecha_inicio">Inicio <span class="sort-ind"></span></th>
-              <th class="sortable" data-sort="fecha_fin">Fin <span class="sort-ind"></span></th>
-              <th>Estado</th>
+              <th class="sortable" data-sort="fecha_fin">Fecha máxima de postulación <span class="sort-ind"></span></th>
               <th>Etiquetas</th>
               <th>Acción</th>
             </tr>

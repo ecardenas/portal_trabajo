@@ -1,0 +1,204 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Empleos SERVIR - Versión Privada</title>
+  <link rel="stylesheet" href="../styles.css" />
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="star.css" />
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-inner hero-flex">
+      <div>
+        <h1 class="hero-title-flex">
+          Ofertas Laborales CAS
+          <span id="userInfo" class="user-info-flex" style="display:none;">
+            <button id="userMenuBtn" class="user-icon-btn" title="Menú usuario">
+              <img src="../img/user_on.png" alt="Usuario" class="user-avatar" width="32" height="32" />
+            </button>
+            <span id="userName" class="user-name user-name-contrast"></span>
+          </span>
+        </h1>
+        <p>Accede a todos los filtros, sin publicidad y con alertas personalizadas.</p>
+      </div>
+    </div>
+    <div class="user-dropdown" id="userDropdown" style="display:none;position:absolute;right:32px;top:70px;z-index:10;">
+      <button id="btnActualizarDatos">Actualizar datos</button>
+      <button id="btnCerrarSesion">Cerrar sesión</button>
+    </div>
+  </header>
+  <main class="container">
+    <section class="panel filters-card" id="filtersCard">
+      <div class="filters-head">
+        <div>
+          <h2 class="section-title">Filtros avanzados</h2>
+          <p class="section-subtitle">Filtra por cualquier campo y accede a todas las opciones.</p>
+        </div>
+        <div class="filters-head-actions">
+          <span id="activeFiltersChip" class="active-filters-chip is-hidden">Filtros activos (0)</span>
+        </div>
+      </div>
+      <div class="filters-grid">
+        <div class="field col-4">
+          <label for="q" style="display:flex;align-items:center;gap:6px;position:relative;">
+            Puesto
+            <button type="button" id="qHelpBtn" class="help-icon-btn" tabindex="0" aria-label="¿Cómo buscar?">
+              <span class="help-icon">?</span>
+              <span class="tooltip">Ingrese un texto de <b>mínimo 5 caracteres</b> para buscar por el <b>nombre del puesto</b>.<br>Ejemplo: "Analista", "Especialista".</span>
+            </button>
+          </label>
+          <div class="input-wrap">
+            <input id="q" class="filter-control" type="text" placeholder="Ej. Analista, Especialista, Asistente" />
+          </div>
+        </div>
+        <div class="field col-4">
+          <label for="carrera" style="display:flex;align-items:center;gap:6px;position:relative;">
+            Carrera o formación
+            <button type="button" id="carreraHelpBtn" class="help-icon-btn" tabindex="0" aria-label="¿Cómo buscar carrera?">
+              <span class="help-icon">?</span>
+              <span class="tooltip">Ingrese una carrera o formación de <b>mínimo 5 caracteres</b>.<br>Ejemplo: "Derecho", "Ingeniería".</span>
+            </button>
+          </label>
+          <div class="input-wrap">
+            <input id="carrera" class="filter-control" type="text" placeholder="Ej. Derecho, Ingeniería, Economía" />
+          </div>
+        </div>
+        <div class="field col-4">
+          <label for="especializacion" style="display:flex;align-items:center;gap:6px;position:relative;">
+            Especialización
+            <button type="button" id="especializacionHelpBtn" class="help-icon-btn" tabindex="0" aria-label="¿Cómo buscar especialización?">
+              <span class="help-icon">?</span>
+              <span class="tooltip">Ingrese una especialización de <b>mínimo 5 caracteres</b>.<br>Ejemplo: "Contrataciones", "TI".</span>
+            </button>
+          </label>
+          <div class="input-wrap">
+            <input id="especializacion" class="filter-control" type="text" placeholder="Ej. Contrataciones, TI, Gestión pública" />
+          </div>
+        </div>
+        <div class="field col-4">
+          <label for="ubicacion" style="display:flex;align-items:center;gap:6px;position:relative;">
+            Ubicación
+            <button type="button" id="ubicacionHelpBtn" class="help-icon-btn" tabindex="0" aria-label="¿Cómo buscar ubicación?">
+              <span class="help-icon">?</span>
+              <span class="tooltip">Ingrese una ciudad, provincia o región de <b>mínimo 3 caracteres</b>.<br>Ejemplo: "Lima", "Cusco", "Arequipa".</span>
+            </button>
+          </label>
+          <div class="input-wrap">
+            <input id="ubicacion" class="filter-control" type="text" placeholder="Ej. Lima, Cusco, Arequipa" />
+          </div>
+        </div>
+        <div class="field col-4">
+          <label for="entidad" style="display:flex;align-items:center;gap:6px;position:relative;">
+            Entidad
+            <button type="button" id="entidadHelpBtn" class="help-icon-btn" tabindex="0" aria-label="¿Cómo buscar entidad?">
+              <span class="help-icon">?</span>
+              <span class="tooltip">Ingrese el nombre de la entidad de <b>mínimo 3 caracteres</b>.<br>Ejemplo: "SERVIR", "MTC", "MINSA".</span>
+            </button>
+          </label>
+          <div class="input-wrap">
+            <input id="entidad" class="filter-control" type="text" placeholder="Ej. SERVIR, MTC, MINSA" />
+          </div>
+        </div>
+        <div class="field col-4">
+          <label for="situacion" style="display:flex;align-items:center;gap:6px;position:relative;">
+            Situación
+            <button type="button" id="situacionHelpBtn" class="help-icon-btn" tabindex="0" aria-label="¿Cómo filtrar situación?">
+              <span class="help-icon">?</span>
+              <span class="tooltip">Filtra por vencimiento:<br><b>Vencen pronto</b>: menos de 3 días.<br><b>Vence esta semana</b>: menos de 7 días.<br><b>Mis convocatorias</b>: solo tus postulaciones.</span>
+            </button>
+          </label>
+          <div class="select-wrap">
+            <select id="situacion" class="filter-control">
+              <option value="todos" selected>Todos</option>
+              <option value="vence-pronto">Vencen pronto</option>
+              <option value="vence-semana">Vence esta semana</option>
+              <option value="mis">Mis convocatorias</option>
+            </select>
+          </div>
+        </div>
+        <div class="field col-6">
+          <label style="display:flex;align-items:center;gap:6px;position:relative;">
+            Remuneración
+            <button type="button" id="remHelpBtn" class="help-icon-btn" tabindex="0" aria-label="¿Cómo filtrar remuneración?">
+              <span class="help-icon">?</span>
+              <span class="tooltip">Solo se permiten números. El valor máximo es el monto más alto de la base de datos.</span>
+            </button>
+          </label>
+          <div class="sueldo-group">
+            <div class="select-wrap">
+              <select id="remOp" class="filter-control">
+                <option value="gte">Mayor o igual que</option>
+                <option value="lte">Menor o igual que</option>
+                <option value="eq">Igual a</option>
+              </select>
+            </div>
+            <div class="input-wrap">
+              <input id="remVal" class="filter-control" type="number" placeholder="Monto en soles" />
+            </div>
+          </div>
+        </div>
+        <div class="field col-6 field-actions">
+          <label>&nbsp;</label>
+          <div class="actions">
+            <button id="btnBuscar" type="button">Buscar</button>
+            <button id="btnLimpiar" type="button" class="ghost">Limpiar</button>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section class="panel results-panel" id="resultsPanel">
+      <div class="results-head">
+        <div>
+          <h2 class="section-title">Resultados</h2>
+          <p class="section-subtitle">Consulta las convocatorias encontradas y abre el detalle de cada una.</p>
+        </div>
+        <div class="results-meta">
+          <span id="totalResultados">0 registros</span>
+          <span id="resultsRange">Sin resultados</span>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th class="sortable" data-sort="puesto">Puesto <span class="sort-ind"></span></th>
+              <th class="sortable" data-sort="entidad">Entidad <span class="sort-ind"></span></th>
+              <th class="sortable" data-sort="ubicacion">Ubicación <span class="sort-ind"></span></th>
+              <th class="sortable" data-sort="remuneracion">Remuneración <span class="sort-ind"></span></th>
+              <th class="sortable" data-sort="fecha_fin">Fecha Máxima de postulación <span class="sort-ind"></span></th>
+              <th>Etiquetas</th>
+              <th>Acción</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+      <div id="cardsResults" class="cards-results"></div>
+      <div class="pager">
+        <button id="prev" type="button" class="ghost">Anterior</button>
+        <span id="pageInfo">Página 1 de 1</span>
+        <button id="next" type="button" class="ghost">Siguiente</button>
+      </div>
+    </section>
+  </main>
+  <script src="misconv.js"></script>
+  <script src="app.js"></script>
+  <!-- Modal de detalle de convocatoria (igual que público) -->
+    <dialog id="detalleDialog">
+      <article>
+        <header>
+          <div class="dialog-title-wrap">
+            <span class="dialog-eyebrow">Detalle de convocatoria</span>
+            <h3 id="dPuesto">Detalle</h3>
+          </div>
+          <button id="cerrarDetalle" type="button">Cerrar</button>
+        </header>
+        <div id="detalleBody"></div>
+      </article>
+    </dialog>
+  <!-- Fin modal detalle -->
+</body>
+</html>

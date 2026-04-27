@@ -1,0 +1,72 @@
+/* Estrella priorizada (amarilla) y no priorizada (blanca) */
+.star-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 4px;
+  vertical-align: middle;
+  outline: none;
+}
+.star-icon {
+  width: 22px;
+  height: 22px;
+  display: inline-block;
+  stroke: #222;
+  stroke-width: 2px;
+  fill: #fff;
+  transition: fill 0.18s;
+}
+.star-icon.priorizada {
+  fill: #facc15;
+  stroke: #222;
+}
+.modal-misconv {
+  position: fixed;
+  left: 0; top: 0; right: 0; bottom: 0;
+  background: rgba(18,32,51,0.18);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-misconv-content {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 32px 0 rgba(18,32,51,0.18);
+  padding: 32px 28px 24px 28px;
+  min-width: 320px;
+  max-width: 90vw;
+  text-align: center;
+}
+.modal-misconv-content h3 {
+  margin-top: 0;
+  margin-bottom: 12px;
+  font-size: 1.18em;
+  color: #122033;
+}
+.modal-misconv-content p {
+  margin-bottom: 18px;
+  color: #374151;
+}
+.modal-misconv-content .modal-actions {
+  display: flex;
+  gap: 18px;
+  justify-content: center;
+}
+.modal-misconv-content button {
+  min-width: 90px;
+  padding: 8px 0;
+  border-radius: 6px;
+  border: none;
+  font-weight: 600;
+  font-size: 1em;
+  cursor: pointer;
+}
+.modal-misconv-content .btn-main {
+  background: #facc15;
+  color: #222;
+}
+.modal-misconv-content .btn-ghost {
+  background: #f3f4f6;
+  color: #374151;
+}

@@ -1,0 +1,85 @@
+/* Tooltips y ayuda */
+.help-icon-btn {
+  background: none;
+  border: none;
+  color: #0f766e;
+  font-size: 1.1em;
+  cursor: pointer;
+  position: relative;
+  padding: 0 4px;
+  display: inline-flex;
+  align-items: center;
+}
+.help-icon {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #facc15;
+  color: #fff;
+  font-weight: 900;
+  text-align: center;
+  line-height: 20px;
+  font-size: 15px;
+  box-shadow: 0 1px 4px rgba(18,32,51,0.10);
+}
+.tooltip {
+  display: none;
+  position: absolute;
+  left: 28px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #122033;
+  color: #fff;
+  font-size: 13px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px 0 rgba(0,0,0,0.13);
+  z-index: 20;
+  min-width: 220px;
+  max-width: 320px;
+  white-space: normal;
+  font-weight: 500;
+}
+.help-icon-btn:focus .tooltip,
+.help-icon-btn:hover .tooltip {
+  display: block;
+}
+
+/* Error visual para inputs */
+.input-error {
+  color: #b42318;
+  font-size: 13px;
+  margin-top: 2px;
+  margin-left: 2px;
+  font-weight: 600;
+  display: block;
+}
+.input-error-border {
+  border-color: #b42318 !important;
+  box-shadow: 0 0 0 2px #fee2e2 !important;
+}
+
+/* Chip de filtros activos */
+.active-filters-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.08);
+  color: #0f766e;
+  border: 1px solid rgba(15, 118, 110, 0.16);
+  font-size: 12px;
+  font-weight: 800;
+}
+.is-hidden {
+  display: none !important;
+}
+/* Estilos adicionales para la versión privada */
+
+body {
+  background: #f8fafc;
+}
+
+/* Puedes agregar sobreescrituras o estilos exclusivos aquí */

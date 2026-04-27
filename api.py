@@ -26,6 +26,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Entrypoint principal de la API
+
+
+from auth.routes import router as auth_router
+from convocatorias import routes as convocatorias_routes
+from notificaciones import scheduler
+from database import init_database
+from mis_convocatorias_routes import router as mis_convocatorias_router
+
+# Inicializar la base de datos (crear tablas si no existen)
+init_database()
+
+# Aquí se integrará el framework web (Flask, FastAPI, etc.)
+# y se registrarán los blueprints/routers de cada módulo
+
+
+# Registrar routers
+app.include_router(auth_router)
+app.include_router(mis_convocatorias_router)
 DATABASE_FILE = "empleos_servir.db"
 
 def get_connection():
@@ -45,48 +64,49 @@ def app_web():
     return RedirectResponse(url="/static/index.html")
 
 @app.get("/estadisticas")
-def obtener_estadisticas():
-    """Obtiene estadísticas generales de las ofertas"""
+def obtener_estadisticas(solo_30: bool = Query(False, description="Solo ofertas que vencen en los próximos 30 días")):
+    """Obtiene estadísticas generales de las ofertas. Si solo_30=True, solo cuenta ofertas que vencen en los próximos 30 días."""
     conn = get_connection()
     cursor = conn.cursor()
-    
     stats = {}
-    
-    cursor.execute("""SELECT COUNT(*) FROM ofertas 
-        WHERE date(substr(fecha_fin, 7, 4) || '-' || substr(fecha_fin, 4, 2) || '-' || substr(fecha_fin, 1, 2)) >= date('now')""")
-    stats["ofertas_vigentes"] = cursor.fetchone()[0]
-    
-    cursor.execute("SELECT COUNT(*) FROM ofertas")
-    stats["ofertas_total"] = cursor.fetchone()[0]
-    
-    cursor.execute("SELECT AVG(remuneracion) FROM ofertas WHERE remuneracion > 0")
-    result = cursor.fetchone()[0]
-    stats["remuneracion_promedio"] = round(result, 2) if result else 0
-    
-    cursor.execute("SELECT MAX(remuneracion) FROM ofertas")
-    stats["remuneracion_maxima"] = cursor.fetchone()[0]
-    
-    cursor.execute("SELECT MIN(remuneracion) FROM ofertas WHERE remuneracion > 0")
-    stats["remuneracion_minima"] = cursor.fetchone()[0]
-    
-    cursor.execute("""
-        SELECT entidad, COUNT(*) as cantidad 
-        FROM ofertas 
-        GROUP BY entidad 
-        ORDER BY cantidad DESC 
-        LIMIT 5
-    """)
-    stats["top_entidades"] = [{"entidad": row[0], "cantidad": row[1]} for row in cursor.fetchall()]
-    
-    cursor.execute("""
-        SELECT ubicacion, COUNT(*) as cantidad 
-        FROM ofertas 
-        GROUP BY ubicacion 
-        ORDER BY cantidad DESC 
-        LIMIT 5
-    """)
-    stats["top_ubicaciones"] = [{"ubicacion": row[0], "cantidad": row[1]} for row in cursor.fetchall()]
-    
+    if solo_30:
+        cursor.execute("""
+            SELECT COUNT(*) FROM ofertas 
+            WHERE date(substr(fecha_fin, 7, 4) || '-' || substr(fecha_fin, 4, 2) || '-' || substr(fecha_fin, 1, 2)) >= date('now')
+              AND date(substr(fecha_fin, 7, 4) || '-' || substr(fecha_fin, 4, 2) || '-' || substr(fecha_fin, 1, 2)) <= date('now', '+30 days')
+        """)
+        stats["ofertas_vigentes"] = cursor.fetchone()[0]
+        cursor.execute("""
+            SELECT COUNT(*) FROM ofertas 
+            WHERE date(substr(fecha_fin, 7, 4) || '-' || substr(fecha_fin, 4, 2) || '-' || substr(fecha_fin, 1, 2)) >= date('now')
+              AND date(substr(fecha_fin, 7, 4) || '-' || substr(fecha_fin, 4, 2) || '-' || substr(fecha_fin, 1, 2)) <= date('now', '+30 days')
+        """)
+        stats["ofertas_total"] = cursor.fetchone()[0]
+        cursor.execute("""
+            SELECT AVG(remuneracion) FROM ofertas 
+            WHERE remuneracion > 0
+              AND date(substr(fecha_fin, 7, 4) || '-' || substr(fecha_fin, 4, 2) || '-' || substr(fecha_fin, 1, 2)) >= date('now')
+              AND date(substr(fecha_fin, 7, 4) || '-' || substr(fecha_fin, 4, 2) || '-' || substr(fecha_fin, 1, 2)) <= date('now', '+30 days')
+        """)
+        result = cursor.fetchone()[0]
+        stats["remuneracion_promedio"] = round(result, 2) if result else 0
+        cursor.execute("""
+            SELECT MAX(remuneracion) FROM ofertas 
+            WHERE date(substr(fecha_fin, 7, 4) || '-' || substr(fecha_fin, 4, 2) || '-' || substr(fecha_fin, 1, 2)) >= date('now')
+              AND date(substr(fecha_fin, 7, 4) || '-' || substr(fecha_fin, 4, 2) || '-' || substr(fecha_fin, 1, 2)) <= date('now', '+30 days')
+        """)
+        stats["remuneracion_maxima"] = cursor.fetchone()[0]
+    else:
+        cursor.execute("""SELECT COUNT(*) FROM ofertas 
+            WHERE date(substr(fecha_fin, 7, 4) || '-' || substr(fecha_fin, 4, 2) || '-' || substr(fecha_fin, 1, 2)) >= date('now')""")
+        stats["ofertas_vigentes"] = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM ofertas")
+        stats["ofertas_total"] = cursor.fetchone()[0]
+        cursor.execute("SELECT AVG(remuneracion) FROM ofertas WHERE remuneracion > 0")
+        result = cursor.fetchone()[0]
+        stats["remuneracion_promedio"] = round(result, 2) if result else 0
+        cursor.execute("SELECT MAX(remuneracion) FROM ofertas")
+        stats["remuneracion_maxima"] = cursor.fetchone()[0]
     conn.close()
     return stats
 
@@ -157,7 +177,7 @@ def obtener_oferta(oferta_id: int):
 
 @app.get("/buscar")
 def buscar_ofertas(
-    q: Optional[str] = Query(None, description="Búsqueda por puesto"),
+    q: Optional[str] = Query(None, description="Búsqueda por puesto o formación"),
     carrera: Optional[str] = Query(None, description="Filtrar por carrera o formación"),
     especializacion: Optional[str] = Query(None, description="Filtrar por especialización"),
     ubicacion: Optional[str] = Query(None, description="Filtrar por ubicación"),
@@ -168,55 +188,72 @@ def buscar_ofertas(
     ordenar_por: str = Query("fecha_inicio", description="Campo para ordenar"),
     orden: str = Query("desc", description="asc o desc"),
     pagina: int = Query(1, ge=1),
-    limite: int = Query(20, ge=1, le=100)
+    limite: int = Query(20, ge=1, le=100),
+    solo_30: bool = Query(False, description="Solo ofertas que vencen en los próximos 30 días"),
+    situacion: Optional[str] = Query(None, description="vence-pronto, vence-semana, mis, todos")
 ):
     """Búsqueda avanzada de ofertas"""
+    import unicodedata
+    def normalize(s):
+        if not s:
+            return s
+        return unicodedata.normalize('NFD', s).encode('ascii', 'ignore').decode('utf-8')
     conn = get_connection()
     cursor = conn.cursor()
-    
     conditions = []
-    if estado == "vigentes":
-        conditions.append("date(substr(fecha_fin, 7, 4) || '-' || substr(fecha_fin, 4, 2) || '-' || substr(fecha_fin, 1, 2)) >= date('now')")
-    elif estado == "cerradas":
-        conditions.append("date(substr(fecha_fin, 7, 4) || '-' || substr(fecha_fin, 4, 2) || '-' || substr(fecha_fin, 1, 2)) < date('now')")
-    # "todos" → sin filtro
     params = []
-    
-    if q:
-        conditions.append("puesto LIKE ?")
-        params.append(f"%{q}%")
+    if solo_30:
+        conditions.append("date(substr(fecha_fin, 7, 4) || '-' || substr(fecha_fin, 4, 2) || '-' || substr(fecha_fin, 1, 2)) >= date('now')")
+        conditions.append("date(substr(fecha_fin, 7, 4) || '-' || substr(fecha_fin, 4, 2) || '-' || substr(fecha_fin, 1, 2)) <= date('now', '+30 days')")
+    else:
+        if estado == "vigentes":
+            conditions.append("date(substr(fecha_fin, 7, 4) || '-' || substr(fecha_fin, 4, 2) || '-' || substr(fecha_fin, 1, 2)) >= date('now')")
+        elif estado == "cerradas":
+            conditions.append("date(substr(fecha_fin, 7, 4) || '-' || substr(fecha_fin, 4, 2) || '-' || substr(fecha_fin, 1, 2)) < date('now')")
 
+    # Filtro de situación (etiquetas)
+    if situacion == "vence-pronto":
+        # Vence en los próximos 3 días (incluye hoy)
+        conditions.append("date(substr(fecha_fin, 7, 4) || '-' || substr(fecha_fin, 4, 2) || '-' || substr(fecha_fin, 1, 2)) >= date('now')")
+        conditions.append("date(substr(fecha_fin, 7, 4) || '-' || substr(fecha_fin, 4, 2) || '-' || substr(fecha_fin, 1, 2)) <= date('now', '+3 days')")
+    elif situacion == "vence-semana":
+        # Vence en los próximos 7 días (incluye hoy)
+        conditions.append("date(substr(fecha_fin, 7, 4) || '-' || substr(fecha_fin, 4, 2) || '-' || substr(fecha_fin, 1, 2)) >= date('now')")
+        conditions.append("date(substr(fecha_fin, 7, 4) || '-' || substr(fecha_fin, 4, 2) || '-' || substr(fecha_fin, 1, 2)) <= date('now', '+7 days')")
+    elif situacion == "mis":
+        # Placeholder: solo mis postulaciones (requiere autenticación y lógica adicional)
+        # Aquí podrías filtrar por usuario autenticado si tienes esa relación en la BD
+        pass
+    # Filtro q: buscar en puesto o formacion, omitiendo tildes
+    if q:
+        nq = normalize(q)
+        conditions.append("(LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(puesto,'á','a'),'é','e'),'í','i'),'ó','o'),'ú','u'),'Á','A'),'É','E'),'Í','I'),'Ó','O'),'Ú','U')) LIKE ? OR LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(formacion,'á','a'),'é','e'),'í','i'),'ó','o'),'ú','u'),'Á','A'),'É','E'),'Í','I'),'Ó','O'),'Ú','U')) LIKE ?)")
+        params.append(f"%{nq.lower()}%")
+        params.append(f"%{nq.lower()}%")
     if carrera:
         conditions.append("formacion LIKE ?")
         params.append(f"%{carrera}%")
-
     if especializacion:
         conditions.append("especializacion LIKE ?")
         params.append(f"%{especializacion}%")
-    
     if ubicacion:
-        conditions.append("ubicacion LIKE ?")
-        params.append(f"%{ubicacion}%")
-    
+        nu = normalize(ubicacion)
+        conditions.append("LOWER(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(ubicacion,'á','a'),'é','e'),'í','i'),'ó','o'),'ú','u'),'Á','A'),'É','E'),'Í','I'),'Ó','O'),'Ú','U')) LIKE ?")
+        params.append(f"%{nu.lower()}%")
     if entidad:
         conditions.append("entidad LIKE ?")
         params.append(f"%{entidad}%")
-    
     if remuneracion is not None:
         op_map = {"gte": ">=", "lte": "<=", "eq": "="}
         sql_op = op_map.get(remuneracion_op, ">=")
         conditions.append(f"remuneracion {sql_op} ?")
         params.append(remuneracion)
-    
     if not conditions:
         conditions.append("1 = 1")
-    
     where_clause = " AND ".join(conditions)
-    
     # Contar total
     cursor.execute(f"SELECT COUNT(*) FROM ofertas WHERE {where_clause}", params)
     total = cursor.fetchone()[0]
-    
     # Mapeo seguro de ordenamiento (evita SQL injection y permite ordenar fechas dd/mm/yyyy)
     order_map = {
         "puesto": "puesto",
@@ -229,7 +266,6 @@ def buscar_ofertas(
     }
     order_sql = order_map.get(ordenar_por, order_map["fecha_inicio"])
     order_dir = "DESC" if orden.lower() == "desc" else "ASC"
-
     # Obtener ofertas
     offset = (pagina - 1) * limite
     cursor.execute(f"""
@@ -241,11 +277,8 @@ def buscar_ofertas(
         ORDER BY {order_sql} {order_dir} NULLS LAST
         LIMIT ? OFFSET ?
     """, params + [limite, offset])
-    
     ofertas = [row_to_dict(row) for row in cursor.fetchall()]
-    
     conn.close()
-    
     return {
         "total": total,
         "pagina": pagina,
@@ -260,7 +293,8 @@ def buscar_ofertas(
             "remuneracion_op": remuneracion_op,
             "estado": estado,
             "ordenar_por": ordenar_por,
-            "orden": order_dir.lower()
+            "orden": order_dir.lower(),
+            "solo_30": solo_30
         },
         "ofertas": ofertas
     }

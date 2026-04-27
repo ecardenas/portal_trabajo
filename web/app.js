@@ -1,4 +1,3 @@
-
 // Responsive: ocultar filtros y forzar estado vigentes en móvil
 function isMobile() {
   return window.innerWidth < 768;
@@ -29,8 +28,8 @@ const state = {
   limit: 20,
   totalPages: 1,
   totalRecords: 0,
-  sortBy: "fecha_inicio",
-  sortOrder: "desc",
+  sortBy: "fecha_fin",
+  sortOrder: "asc",
   loading: false,
 };
 
@@ -120,15 +119,46 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
+function isAlphaWithSpaces(str) {
+  // Solo letras y espacios, sin tildes ni números ni caracteres especiales
+  return /^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ ]+$/.test(str);
+}
+
+function normalizeInput(str) {
+  // Elimina tildes para comparación
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
 function buildQuery() {
-  const q = $("q").value.trim();
-  const carrera = $("carrera").value.trim();
-  const especializacion = $("especializacion").value.trim();
-  const ubicacion = $("ubicacion").value.trim();
-  const entidad = $("entidad").value.trim();
-  const remOp = $("remOp").value;
-  const remVal = $("remVal").value.trim();
-  const estado = $("estado").value;
+  let puesto = $("puesto").value.trim();
+  let ubicacion = $("ubicacion").value.trim();
+
+  // Limpiar errores previos
+  showInputError("puesto", "");
+  showInputError("ubicacion", "");
+  let valid = true;
+
+  // Validar longitud mínima y solo letras/espacios
+  if (puesto.length > 0) {
+    if (puesto.length < 5) {
+      showInputError("puesto", "Ingrese mínimo 5 letras (solo texto)");
+      valid = false;
+    } else if (!isAlphaWithSpaces(puesto)) {
+      showInputError("puesto", "Solo letras y espacios permitidos");
+      valid = false;
+    }
+  }
+  if (ubicacion.length > 0) {
+    if (ubicacion.length < 3) {
+      showInputError("ubicacion", "Ingrese mínimo 3 letras (solo texto)");
+      valid = false;
+    } else if (!isAlphaWithSpaces(ubicacion)) {
+      showInputError("ubicacion", "Solo letras y espacios permitidos");
+      valid = false;
+    }
+  }
+
+  if (!valid) return null;
 
   const params = new URLSearchParams();
   params.set("pagina", state.page);
@@ -136,26 +166,58 @@ function buildQuery() {
   params.set("ordenar_por", state.sortBy);
   params.set("orden", state.sortOrder);
 
-  if (q) params.set("q", q);
-  if (carrera) params.set("carrera", carrera);
-  if (especializacion) params.set("especializacion", especializacion);
+  // Filtro: solo convocatorias que vencen en los próximos 30 días
+  params.set("solo_30", "true");
+
+  if (puesto) params.set("q", puesto);
   if (ubicacion) params.set("ubicacion", ubicacion);
-  if (entidad) params.set("entidad", entidad);
-  if (remVal) {
-    params.set("remuneracion", remVal);
-    params.set("remuneracion_op", remOp);
-  }
-  if (estado !== "todos") params.set("estado", estado);
 
   return `/buscar?${params.toString()}`;
 }
+// Muestra mensaje de error debajo del input
+function showInputError(id, msg) {
+  const input = $(id);
+  if (!input) return;
+  let err = input.parentElement.querySelector('.input-error');
+  if (!err) {
+    err = document.createElement('div');
+    err.className = 'input-error';
+    input.parentElement.appendChild(err);
+  }
+  err.textContent = msg;
+  err.style.display = msg ? 'block' : 'none';
+  if (msg) {
+    input.classList.add('input-error-border');
+  } else {
+    input.classList.remove('input-error-border');
+  }
+}
+// Interceptar botón buscar para validar y mostrar errores
+window.addEventListener('DOMContentLoaded', function() {
+  const btnBuscar = $("btnBuscar");
+  if (btnBuscar) {
+    btnBuscar.addEventListener("click", function () {
+      const query = buildQuery();
+      if (!query) return; // No buscar si hay error
+      buscar();
+    });
+  }
+  // Limpiar errores al limpiar filtros
+  const btnLimpiar = $("btnLimpiar");
+  if (btnLimpiar) {
+    btnLimpiar.addEventListener("click", function () {
+      showInputError("puesto", "");
+      showInputError("ubicacion", "");
+    });
+  }
+});
 
 function getActiveFiltersCount() {
   let count = 0;
-  ["q", "carrera", "especializacion", "ubicacion", "entidad", "remVal"].forEach((id) => {
-    if ($(id).value.trim()) count += 1;
+  ["puesto", "ubicacion"].forEach((id) => {
+    const el = $(id);
+    if (el && el.value.trim()) count += 1;
   });
-  if ($("estado").value !== "todos") count += 1;
   return count;
 }
 
@@ -216,7 +278,8 @@ function renderStatsSkeleton() {
 
 async function loadStats() {
   renderStatsSkeleton();
-  const s = await fetchJSON("/estadisticas");
+  // Nueva estadística: solo ofertas que vencen en los próximos 30 días
+  const s = await fetchJSON("/estadisticas?solo_30=true");
 
   $("sActivas").textContent = s.ofertas_vigentes ?? "-";
   $("sTotal").textContent = s.ofertas_total ?? "-";
@@ -375,21 +438,22 @@ function renderRows(items) {
     return;
   }
 
+  // Obtener filtros activos
+  const filtroPuesto = $("puesto")?.value.trim();
+  const filtroUbicacion = $("ubicacion")?.value.trim();
+
   items.forEach((it, index) => {
     const num = getRowNumber(index);
-    const badge = getStatusBadge(it.fecha_fin);
     const tagsHtml = renderTags(it);
 
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td class="cell-index">${num}</td>
-      <td class="cell-puesto">${escapeHtml(it.puesto || "-")}</td>
+      <td class="cell-puesto">${highlightText(it.puesto || "-", filtroPuesto)}</td>
       <td>${escapeHtml(it.entidad || "-")}</td>
-      <td>${escapeHtml(it.ubicacion || "-")}</td>
+      <td>${highlightText(it.ubicacion || "-", filtroUbicacion)}</td>
       <td>${money(it.remuneracion)}</td>
-      <td>${formatDate(it.fecha_inicio)}</td>
       <td>${formatDate(it.fecha_fin)}</td>
-      <td>${badge}</td>
       <td><div class="table-tags">${tagsHtml}</div></td>
       <td><button class="ghost btn-detail" data-id="${it.id}">Ver detalle</button></td>
     `;
@@ -401,15 +465,14 @@ function renderRows(items) {
       card.innerHTML = `
         <div class="result-card-top">
           <span class="result-index">#${num}</span>
-          ${badge}
         </div>
-        <h3 class="result-title">${escapeHtml(it.puesto || "-")}</h3>
+        <h3 class="result-title">${highlightText(it.puesto || "-", filtroPuesto)}</h3>
         <p class="result-entity">${escapeHtml(it.entidad || "-")}</p>
 
         <div class="card-meta-grid">
           <div>
             <span class="meta-label">Ubicación</span>
-            <strong>${escapeHtml(it.ubicacion || "-")}</strong>
+            <strong>${highlightText(it.ubicacion || "-", filtroUbicacion)}</strong>
           </div>
           <div>
             <span class="meta-label">Remuneración</span>
@@ -440,7 +503,13 @@ function renderRows(items) {
   });
 }
 
-function makeDetailItem(label, value, type = "text", full = false) {
+function highlightText(text, filter) {
+  if (!filter) return escapeHtml(text);
+  const re = new RegExp(`(${filter.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  return escapeHtml(text).replace(re, '<span class="highlight">$1</span>');
+}
+
+function makeDetailItem(label, value, type = "text", full = false, filter = "") {
   if (!value && value !== 0) return "";
   const fullClass = full ? "detail-item-full" : "";
 
@@ -457,7 +526,7 @@ function makeDetailItem(label, value, type = "text", full = false) {
   return `
     <div class="detail-item ${fullClass}">
       <span class="detail-label">${label}</span>
-      <div class="detail-value">${escapeHtml(value)}</div>
+      <div class="detail-value">${highlightText(value, filter)}</div>
     </div>
   `;
 }
@@ -504,6 +573,10 @@ async function showDetail(id) {
 
     const tagsHtml = renderTags(d);
 
+    // Obtener filtros activos
+    const filtroPuesto = $("puesto")?.value.trim();
+    const filtroUbicacion = $("ubicacion")?.value.trim();
+
     const summary = `
       <section class="detail-summary-grid">
         <div class="mini-stat"><span>Remuneración</span><strong>${money(d.remuneracion)}</strong></div>
@@ -518,13 +591,13 @@ async function showDetail(id) {
 
     const generalItems = [
       makeDetailItem("Entidad", d.entidad),
-      makeDetailItem("Ubicación", d.ubicacion),
+      makeDetailItem("Ubicación", d.ubicacion, "text", false, filtroUbicacion),
       makeDetailItem("Número de convocatoria", d.numero_convocatoria),
       makeDetailItem("Link de postulación", d.link_postulacion, "link", true),
     ];
 
     const profileItems = [
-      makeDetailItem("Formación", d.formacion, "text", true),
+      makeDetailItem("Formación", d.formacion, "text", true, filtroPuesto),
       makeDetailItem("Experiencia", d.experiencia, "text", true),
       makeDetailItem("Especialización", d.especializacion, "text", true),
       makeDetailItem("Conocimiento", d.conocimiento, "text", true),
@@ -558,7 +631,7 @@ async function showDetail(id) {
         ], true)}
         ${buildMobileAccordionSection("Información general", generalItems, true)}
         ${buildMobileAccordionSection("Perfil del puesto", [
-          makeDetailItem("Formación", d.formacion, "text", true),
+          makeDetailItem("Formación", d.formacion, "text", true, filtroPuesto),
           makeDetailItem("Experiencia", d.experiencia, "text", true),
           makeDetailItem("Especialización", d.especializacion, "text", true),
         ], false)}
@@ -617,6 +690,7 @@ function renderSortIndicators() {
   });
 }
 
+// Ajustar scroll para que apunte al título de Resultados SOLO en paginación
 async function runSearch(options = {}) {
   updateLoading(true);
   renderTableSkeleton();
@@ -633,6 +707,14 @@ async function runSearch(options = {}) {
     renderSortIndicators();
     updateResultsMeta(total);
     renderActiveFiltersChip();
+
+    // Scroll automático al título de Resultados SOLO si options.scrollResultados
+    if (options.scrollResultados) {
+      const resultadosTitle = document.querySelector('.results-panel .section-title');
+      if (resultadosTitle) {
+        resultadosTitle.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
 
     if (window.innerWidth < 768 && options.collapseFiltersOnMobile) {
       const filtersCard = $("filtersCard");
@@ -686,7 +768,7 @@ function bindFiltersToggle() {
 function bindEvents() {
   $("btnBuscar").addEventListener("click", () => {
     state.page = 1;
-    runSearch({ collapseFiltersOnMobile: true });
+    runSearch({ collapseFiltersOnMobile: true, scrollResultados: false });
   });
 
   $("btnLimpiar").addEventListener("click", resetFilters);
@@ -694,16 +776,44 @@ function bindEvents() {
   $("prev").addEventListener("click", () => {
     if (state.page > 1) {
       state.page -= 1;
-      runSearch();
+      runSearch({ scrollResultados: true });
     }
   });
 
   $("next").addEventListener("click", () => {
     if (state.page < state.totalPages) {
       state.page += 1;
-      runSearch();
+      runSearch({ scrollResultados: true });
     }
   });
+
+  // Popup de ayuda para el campo descripción
+  function showDescHelpPopup() {
+    let popup = document.getElementById('descHelpPopup');
+    if (popup) {
+      popup.remove();
+      return;
+    }
+    popup = document.createElement('div');
+    popup.className = 'popup-help';
+    popup.id = 'descHelpPopup';
+    popup.innerHTML = `<strong>¿Cómo buscar?</strong><br>Ingrese un texto para buscar por el <b>nombre del puesto</b> o por la <b>carrera o formación</b> requerida en la convocatoria. Ejemplo: "Ingeniería", "Derecho", "Analista".`;
+    const label = document.querySelector('label[for="puesto"]');
+    if (label) {
+      label.style.position = 'relative';
+      label.appendChild(popup);
+      // Cerrar al hacer click fuera
+      setTimeout(() => {
+        document.addEventListener('mousedown', hideDescHelpPopup, { once: true });
+      }, 0);
+    }
+  }
+  function hideDescHelpPopup(e) {
+    const popup = document.getElementById('descHelpPopup');
+    if (!popup) return;
+    if (e && popup.contains(e.target)) return;
+    popup.remove();
+  }
 
   $("cerrarDetalle").addEventListener("click", () => $("detalleDialog").close());
 

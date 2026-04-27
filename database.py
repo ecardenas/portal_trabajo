@@ -1,3 +1,162 @@
+def insertar_o_actualizar_oferta_backup(reg):
+    """
+    Copia de respaldo del método original para restaurar si el batch falla.
+    """
+    return insertar_o_actualizar_oferta(reg)
+
+def batch_insertar_actualizar_ofertas(registros):
+    """
+    Inserta o actualiza una lista de registros en una sola transacción.
+    Retorna una lista de tuplas (resultado, id_bd) por cada registro.
+    """
+    if not registros:
+        return []
+    conn = get_connection()
+    cursor = conn.cursor()
+    resultados = []
+    # Obtener todos los id_oferta de los registros
+    ids = [reg.get("id_oferta") for reg in registros if reg.get("id_oferta")]
+    existentes = {}
+    if ids:
+        q = f"SELECT id_oferta, id FROM ofertas WHERE id_oferta IN ({','.join(['?']*len(ids))})"
+        cursor.execute(q, ids)
+        existentes = {row[0]: row[1] for row in cursor.fetchall()}
+    try:
+        for reg in registros:
+            id_oferta = reg.get("id_oferta")
+            if not id_oferta:
+                resultados.append(("sin_id", None))
+                continue
+            if id_oferta in existentes:
+                id_bd = existentes[id_oferta]
+                try:
+                    cursor.execute("""
+                        UPDATE ofertas SET
+                            puesto = ?, entidad = ?, ubicacion = ?, remuneracion = ?,
+                            vacantes = ?, numero_convocatoria = ?, fecha_inicio = ?, fecha_fin = ?,
+                            experiencia = ?, formacion = ?, especializacion = ?,
+                            conocimiento = ?, competencias = ?, link_postulacion = ?,
+                            requerimiento_completo = ?, fecha_actualizacion = ?
+                        WHERE id_oferta = ?
+                    """, (
+                        reg.get("puesto"), reg.get("entidad"), reg.get("ubicacion"),
+                        reg.get("remuneracion"), reg.get("vacantes"), reg.get("numero_convocatoria"),
+                        reg.get("fecha_inicio"), reg.get("fecha_fin"),
+                        reg.get("experiencia"), reg.get("formacion"), reg.get("especializacion"),
+                        reg.get("conocimiento"), reg.get("competencias"), reg.get("link_postulacion"),
+                        reg.get("requerimiento_completo"), datetime.now().isoformat(),
+                        id_oferta
+                    ))
+                    resultados.append(("actualizado", id_bd))
+                except Exception as e:
+                    resultados.append(("error", id_bd))
+            else:
+                try:
+                    cursor.execute("""
+                        INSERT INTO ofertas (
+                            id_oferta, puesto, entidad, ubicacion, remuneracion,
+                            vacantes, numero_convocatoria, fecha_inicio, fecha_fin,
+                            experiencia, formacion, especializacion,
+                            conocimiento, competencias, link_postulacion,
+                            requerimiento_completo, fecha_scraping
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        id_oferta, reg.get("puesto"), reg.get("entidad"), reg.get("ubicacion"),
+                        reg.get("remuneracion"), reg.get("vacantes"), reg.get("numero_convocatoria"),
+                        reg.get("fecha_inicio"), reg.get("fecha_fin"),
+                        reg.get("experiencia"), reg.get("formacion"), reg.get("especializacion"),
+                        reg.get("conocimiento"), reg.get("competencias"), reg.get("link_postulacion"),
+                        reg.get("requerimiento_completo"), datetime.now().isoformat()
+                    ))
+                    resultados.append(("nuevo", cursor.lastrowid))
+                except Exception as e:
+                    resultados.append(("error", None))
+        conn.commit()
+        return resultados
+    except Exception as e:
+        conn.rollback()
+        resultados.extend([("error", None)] * len(registros))
+    finally:
+        conn.close()
+    return resultados
+
+def batch_insertar_actualizar_ofertas_batch(registros):
+    """
+    Inserta o actualiza una lista de registros en una sola transacción (modo batch).
+    No modifica métodos existentes. Devuelve lista de tuplas (resultado, id_bd) por registro.
+    Solo usar en modo batch.
+    """
+    if not registros:
+        return []
+    import sqlite3
+    from datetime import datetime
+    conn = get_connection()
+    cursor = conn.cursor()
+    resultados = []
+    ids = [reg.get("id_oferta") for reg in registros if reg.get("id_oferta")]
+    existentes = {}
+    if ids:
+        q = f"SELECT id_oferta, id FROM ofertas WHERE id_oferta IN ({','.join(['?']*len(ids))})"
+        cursor.execute(q, ids)
+        existentes = {row[0]: row[1] for row in cursor.fetchall()}
+    try:
+        for reg in registros:
+            id_oferta = reg.get("id_oferta")
+            if not id_oferta:
+                resultados.append(("sin_id", None))
+                continue
+            if id_oferta in existentes:
+                id_bd = existentes[id_oferta]
+                try:
+                    cursor.execute("""
+                        UPDATE ofertas SET
+                            puesto = ?, entidad = ?, ubicacion = ?, remuneracion = ?,
+                            vacantes = ?, numero_convocatoria = ?, fecha_inicio = ?, fecha_fin = ?,
+                            experiencia = ?, formacion = ?, especializacion = ?,
+                            conocimiento = ?, competencias = ?, link_postulacion = ?,
+                            requerimiento_completo = ?, fecha_actualizacion = ?
+                        WHERE id_oferta = ?
+                    """, (
+                        reg.get("puesto"), reg.get("entidad"), reg.get("ubicacion"),
+                        reg.get("remuneracion"), reg.get("vacantes"), reg.get("numero_convocatoria"),
+                        reg.get("fecha_inicio"), reg.get("fecha_fin"),
+                        reg.get("experiencia"), reg.get("formacion"), reg.get("especializacion"),
+                        reg.get("conocimiento"), reg.get("competencias"), reg.get("link_postulacion"),
+                        reg.get("requerimiento_completo"), datetime.now().isoformat(),
+                        id_oferta
+                    ))
+                    resultados.append(("actualizado", id_bd))
+                except Exception as e:
+                    resultados.append(("error", id_bd))
+            else:
+                try:
+                    cursor.execute("""
+                        INSERT INTO ofertas (
+                            id_oferta, puesto, entidad, ubicacion, remuneracion,
+                            vacantes, numero_convocatoria, fecha_inicio, fecha_fin,
+                            experiencia, formacion, especializacion,
+                            conocimiento, competencias, link_postulacion,
+                            requerimiento_completo, fecha_scraping
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        id_oferta, reg.get("puesto"), reg.get("entidad"), reg.get("ubicacion"),
+                        reg.get("remuneracion"), reg.get("vacantes"), reg.get("numero_convocatoria"),
+                        reg.get("fecha_inicio"), reg.get("fecha_fin"),
+                        reg.get("experiencia"), reg.get("formacion"), reg.get("especializacion"),
+                        reg.get("conocimiento"), reg.get("competencias"), reg.get("link_postulacion"),
+                        reg.get("requerimiento_completo"), datetime.now().isoformat()
+                    ))
+                    resultados.append(("nuevo", cursor.lastrowid))
+                except Exception as e:
+                    resultados.append(("error", None))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        resultados.extend([("error", None)] * len(registros))
+    finally:
+        conn.close()
+    return resultados
+
 def registrar_control_scraping(modo: str, registros_extraidos: int, fecha_inicio_min: str, fecha_inicio_max: str):
     """
     Inserta un registro de control de corrida del scraper.
@@ -39,7 +198,11 @@ def obtener_ultimo_control_scraping(modo: str = None):
     return dict(row) if row else None
 """
 Módulo de base de datos para el portal de empleos SERVIR
+Estructura base para integración con el resto del sistema.
 """
+def get_db_connection():
+    """Alias para compatibilidad con otros módulos"""
+    return get_connection()
 import sqlite3
 from datetime import datetime
 from typing import Optional, List, Dict
@@ -57,6 +220,42 @@ def init_database():
     """Inicializa las tablas de la base de datos"""
     conn = get_connection()
     cursor = conn.cursor()
+    # Tabla de convocatorias priorizadas por usuario (máx 20)
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS mis_convocatorias (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuario_id INTEGER NOT NULL,
+            id_oferta TEXT NOT NULL,
+            fecha_agregado TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(usuario_id, id_oferta),
+            FOREIGN KEY(usuario_id) REFERENCES users(id),
+            FOREIGN KEY(id_oferta) REFERENCES ofertas(id_oferta)
+        )
+    """)
+    # Tabla de auditoría de acciones de usuario
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS auditoria (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            usuario_id INTEGER,
+            email TEXT,
+            accion TEXT,
+            parametros TEXT,
+            resultado TEXT,
+            ip TEXT,
+            user_agent TEXT,
+            fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    # Tabla de usuarios para autenticación
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            role TEXT NOT NULL DEFAULT 'user',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
     
     # Tabla principal de ofertas
     cursor.execute("""
