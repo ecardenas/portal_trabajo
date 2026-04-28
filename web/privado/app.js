@@ -125,6 +125,12 @@ async function fetchJSON(url) {
 function buildQuery() {
   let puesto = $("q").value.trim();
   let ubicacion = $("ubicacion").value.trim();
+  let carrera = $("carrera") ? $("carrera").value.trim() : "";
+  let especializacion = $("especializacion") ? $("especializacion").value.trim() : "";
+  let entidad = $("entidad") ? $("entidad").value.trim() : "";
+  let remVal = $("remVal") ? $("remVal").value.trim() : "";
+  let remOp = $("remOp") ? $("remOp").value.trim() : "gte";
+  let situacion = $("situacion") ? $("situacion").value.trim() : "todos";
 
   // Limpiar errores previos
   showInputError("puesto", "");
@@ -150,6 +156,22 @@ function buildQuery() {
       valid = false;
     }
   }
+  if (carrera.length > 0 && carrera.length < 3) {
+    showInputError("carrera", "Ingrese mínimo 3 letras");
+    valid = false;
+  }
+  if (especializacion.length > 0 && especializacion.length < 3) {
+    showInputError("especializacion", "Ingrese mínimo 3 letras");
+    valid = false;
+  }
+  if (entidad.length > 0 && entidad.length < 2) {
+    showInputError("entidad", "Ingrese mínimo 2 letras");
+    valid = false;
+  }
+  if (remVal && isNaN(Number(remVal))) {
+    showInputError("remVal", "Ingrese un valor numérico válido");
+    valid = false;
+  }
 
   if (!valid) return null;
 
@@ -158,12 +180,16 @@ function buildQuery() {
   params.set("limite", state.limit);
   params.set("ordenar_por", state.sortBy);
   params.set("orden", state.sortOrder);
-
-  // Filtro: solo convocatorias que vencen en los próximos 30 días
   params.set("solo_30", "true");
 
   if (puesto) params.set("q", puesto);
   if (ubicacion) params.set("ubicacion", ubicacion);
+  if (carrera) params.set("carrera", carrera);
+  if (especializacion) params.set("especializacion", especializacion);
+  if (entidad) params.set("entidad", entidad);
+  if (remVal) params.set("remVal", remVal);
+  if (remOp) params.set("remOp", remOp);
+  if (situacion && situacion !== "todos") params.set("situacion", situacion);
 
   return `/buscar?${params.toString()}`;
 }
@@ -180,7 +206,7 @@ const state = {
 
 function getActiveFiltersCount() {
   let count = 0;
-  ["puesto", "ubicacion"].forEach((id) => {
+    ["q", "ubicacion", "carrera", "especializacion", "entidad", "remVal"].forEach((id) => {
     const el = $(id);
     if (el && el.value.trim()) count += 1;
   });
@@ -267,6 +293,14 @@ function renderRows(items) {
     const tagsHtml = renderTags(it);
     const tr = document.createElement("tr");
     const id_oferta = it.id_oferta || it.id; // fallback
+    // Imagen de detalle
+    const imgDetail = `<img src="../img/detail.png" alt="Ver detalle" class="img-detail-btn" data-id="${it.id}" style="cursor:pointer;width:28px;height:28px;" title="Ver detalle" />`;
+    // Imagen de priorizada
+    let imgStar = '';
+    if (typeof misConvocatorias !== 'undefined' && misConvocatorias.ids) {
+      const priorizada = misConvocatorias.ids.has(id_oferta);
+      imgStar = `<img src="../img/${priorizada ? 'on' : 'off'}.png" alt="${priorizada ? 'Quitar de mis convocatorias' : 'Agregar a mis convocatorias'}" class="img-star-btn" data-star-id="${id_oferta}" style="cursor:pointer;width:28px;height:28px;margin-left:8px;" title="${priorizada ? 'Quitar de mis convocatorias' : 'Agregar a mis convocatorias'}" />`;
+    }
     tr.innerHTML = `
       <td>${num}</td>
       <td>${it.puesto || "-"}</td>
@@ -275,22 +309,19 @@ function renderRows(items) {
       <td>${money(it.remuneracion)}</td>
       <td>${formatDate(it.fecha_fin)}</td>
       <td><div class="table-tags">${tagsHtml}</div></td>
-      <td><button class="ghost btn-detail" data-id="${it.id}">Ver detalle</button> ${window.renderStarBtn ? window.renderStarBtn(id_oferta) : ''}</td>
+      <td><span class="action-imgs">${imgDetail}${imgStar}</span></td>
     `;
     tbody.appendChild(tr);
   });
   // Enlazar evento para abrir detalle
   setTimeout(() => {
-    document.querySelectorAll('.btn-detail').forEach(btn => {
-      btn.onclick = function() {
+    document.querySelectorAll('.img-detail-btn').forEach(img => {
+      img.onclick = function() {
         if (window.showDetail) window.showDetail(this.dataset.id);
       };
     });
-  }, 0);
-  // Enlazar eventos de estrella
-  setTimeout(() => {
-    document.querySelectorAll('.star-btn').forEach(btn => {
-      btn.onclick = async function(e) {
+    document.querySelectorAll('.img-star-btn').forEach(img => {
+      img.onclick = async function(e) {
         const id_oferta = this.getAttribute('data-star-id');
         const priorizada = misConvocatorias.ids.has(id_oferta);
         if (!priorizada) {
@@ -332,36 +363,42 @@ function updateResultsMeta(total) {
     ? "Sin resultados"
     : `Mostrando ${from} - ${to} de ${total.toLocaleString("es-PE")}`;
   $("pageInfo").textContent = `Página ${state.page} de ${state.totalPages}`;
-  $("prev").disabled = state.loading || state.page <= 1;
-  $("next").disabled = state.loading || state.page >= state.totalPages;
+  // Lógica idéntica a la pública: solo deshabilitar si loading o fuera de rango
+  const prevBtn = $("prev");
+  const nextBtn = $("next");
+  if (prevBtn) prevBtn.disabled = state.loading || state.page <= 1;
+  if (nextBtn) nextBtn.disabled = state.loading || state.page >= state.totalPages;
 }
 
-async function runSearch(scrollToTable = false) {
+async function runSearch(options = {}) {
+  console.log('[DEBUG] runSearch: page', state.page, 'limit', state.limit, 'sortBy', state.sortBy, 'sortOrder', state.sortOrder);
   state.loading = true;
   $("btnBuscar").disabled = true;
   $("btnBuscar").innerHTML = `<span class="btn-spinner" aria-hidden="true"></span><span>Buscando...</span>`;
   $("tbody").innerHTML = `<tr><td colspan="10" style="text-align:center;padding:32px;">Buscando...</td></tr>`;
   updateResultsMeta(0);
+  let total = 0;
   try {
     const data = await fetchJSON(buildQuery());
     const items = data.ofertas || [];
-    const total = data.total || 0;
+    total = data.total || 0;
     state.totalPages = Math.max(1, Math.ceil(total / state.limit));
+    console.log('[DEBUG] total:', total, 'state.totalPages:', state.totalPages, 'state.page:', state.page);
     renderRows(items);
     renderOrdenarFlecha();
-    updateResultsMeta(total);
-    if (scrollToTable) {
-      const table = document.querySelector('.results-panel .table-wrap');
-      if (table) {
-        table.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (options.scrollResultados) {
+      const resultadosTitle = document.querySelector('.results-panel .section-title');
+      if (resultadosTitle) {
+        resultadosTitle.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
     renderActiveFiltersChip();
   } catch (e) {
     $("tbody").innerHTML = `<tr><td colspan="10" style="text-align:center;padding:32px;">Error cargando resultados: ${e.message}</td></tr>`;
-    updateResultsMeta(0);
+    total = 0;
   } finally {
     state.loading = false;
+    updateResultsMeta(total);
     $("btnBuscar").disabled = false;
     $("btnBuscar").innerHTML = `<span>Buscar</span>`;
   }
@@ -412,27 +449,23 @@ function bindEvents() {
   renderOrdenarFlecha();
   $("btnBuscar").addEventListener("click", () => {
     state.page = 1;
-    runSearch(true);
+    runSearch({ scrollResultados: false });
   });
   $("btnLimpiar").addEventListener("click", resetFilters);
-  $("prev").addEventListener("click", (e) => {
-    e.preventDefault();
+  $("prev").addEventListener("click", function () {
+    if (state.loading) return;
     if (state.page > 1) {
       state.page -= 1;
-      runSearch(true);
-      // Scroll al título de resultados
-      const resultsTitle = document.querySelector('.results-panel .section-title');
-      if (resultsTitle) resultsTitle.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      console.log('[DEBUG] Botón Anterior: page', state.page);
+      runSearch({ scrollResultados: true });
     }
   });
-  $("next").addEventListener("click", (e) => {
-    e.preventDefault();
+  $("next").addEventListener("click", function () {
+    if (state.loading) return;
     if (state.page < state.totalPages) {
       state.page += 1;
-      runSearch(true);
-      // Scroll al título de resultados
-      const resultsTitle = document.querySelector('.results-panel .section-title');
-      if (resultsTitle) resultsTitle.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      console.log('[DEBUG] Botón Siguiente: page', state.page);
+      runSearch({ scrollResultados: true });
     }
   });
   // Modal de detalle de convocatoria (igual que público)

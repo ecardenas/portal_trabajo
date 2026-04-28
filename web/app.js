@@ -455,7 +455,7 @@ function renderRows(items) {
       <td>${money(it.remuneracion)}</td>
       <td>${formatDate(it.fecha_fin)}</td>
       <td><div class="table-tags">${tagsHtml}</div></td>
-      <td><button class="ghost btn-detail" data-id="${it.id}">Ver detalle</button></td>
+      <td><img src="img/detail.png" alt="Ver detalle" class="img-detail-btn" data-id="${it.id}" style="cursor:pointer;width:28px;height:28px;" title="Ver detalle" /></td>
     `;
     tbody.appendChild(tr);
 
@@ -492,14 +492,14 @@ function renderRows(items) {
           ${tagsHtml}
         </div>
 
-        <button class="ghost btn-detail full" data-id="${it.id}">Ver detalle</button>
+        <img src="img/detail.png" alt="Ver detalle" class="img-detail-btn" data-id="${it.id}" style="cursor:pointer;width:32px;height:32px;margin-top:8px;" title="Ver detalle" />
       `;
       cards.appendChild(card);
     }
   });
 
-  document.querySelectorAll("button[data-id]").forEach((b) => {
-    b.addEventListener("click", () => showDetail(b.dataset.id));
+  document.querySelectorAll(".img-detail-btn").forEach((img) => {
+    img.addEventListener("click", () => showDetail(img.dataset.id));
   });
 }
 

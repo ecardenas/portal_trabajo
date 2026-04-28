@@ -1,3 +1,19 @@
+/* Imagen-botón de detalle y priorización */
+.img-detail-btn, .img-star-btn {
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  vertical-align: middle;
+  transition: filter 0.2s, transform 0.2s;
+  margin: 0 4px;
+}
+.img-detail-btn:hover, .img-star-btn:hover {
+  filter: brightness(1.2) drop-shadow(0 0 2px #007bff);
+  transform: scale(1.08);
+}
+.img-detail-btn[title], .img-star-btn[title] {
+  position: relative;
+}
 /* Enlace destacado para acciones importantes */
 /* Enlace destacado con máximo contraste */
 .link-accent {

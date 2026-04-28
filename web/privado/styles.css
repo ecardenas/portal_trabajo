@@ -1,3 +1,33 @@
+/* Contenedor para alinear imágenes de acción en una línea */
+.action-imgs {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* Espacio entre imágenes, ajustable a 8px (aprox 1-2 espacios) */
+  justify-content: center;
+}
+/* Imagen-botón de detalle y priorización */
+.img-detail-btn, .img-star-btn {
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  vertical-align: middle;
+  transition: filter 0.2s, transform 0.2s;
+  margin: 0 4px;
+}
+.img-detail-btn:hover, .img-star-btn:hover {
+  filter: brightness(1.2) drop-shadow(0 0 2px #007bff);
+  transform: scale(1.08);
+}
+.img-detail-btn[title], .img-star-btn[title] {
+  position: relative;
+}
+button {
+  cursor: pointer;
+}
+button:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
 /* Tooltips y ayuda */
 .help-icon-btn {
   background: none;
