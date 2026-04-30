@@ -25,7 +25,7 @@ def _overlay_page(
     page_width: float,
     page_height: float,
     page_number: int,
-    image_path: Path,
+    image_path: Path | None,
     edge: str,
     box_size: float,
     border_width: float,
@@ -55,31 +55,34 @@ def _overlay_page(
         str(page_number),
     )
 
-    img_reader = ImageReader(str(image_path))
-    img_w, img_h = img_reader.getSize()
-    scale = image_max_width / float(img_w)
-    draw_w = image_max_width
-    draw_h = float(img_h) * scale
 
-    if edge == "right":
-        img_x = box_x + box_size - draw_w
-    else:
-        img_x = box_x
-    img_y = box_y - gap - draw_h
+    # Solo dibuja la imagen si se proporciona image_path
+    if image_path is not None:
+        img_reader = ImageReader(str(image_path))
+        img_w, img_h = img_reader.getSize()
+        scale = image_max_width / float(img_w)
+        draw_w = image_max_width
+        draw_h = float(img_h) * scale
 
-    if img_y < 0:
-        img_y = 0
+        if edge == "right":
+            img_x = box_x + box_size - draw_w
+        else:
+            img_x = box_x
+        img_y = box_y - gap - draw_h
 
-    c.drawImage(
-        img_reader,
-        img_x,
-        img_y,
-        width=draw_w,
-        height=draw_h,
-        mask="auto",
-        preserveAspectRatio=True,
-        anchor="sw",
-    )
+        if img_y < 0:
+            img_y = 0
+
+        c.drawImage(
+            img_reader,
+            img_x,
+            img_y,
+            width=draw_w,
+            height=draw_h,
+            mask="auto",
+            preserveAspectRatio=True,
+            anchor="sw",
+        )
 
     c.save()
     packet.seek(0)
@@ -89,7 +92,7 @@ def _overlay_page(
 def anotar_pdf(
     input_pdf: Path,
     output_pdf: Path,
-    image_path: Path,
+    image_path: Path | None = None,
     edge: str = "right",
     box_size: float = 30,
     border_width: float = 1,
@@ -140,12 +143,12 @@ def anotar_pdf(
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Agrega en cada pagina un cuadro con numero y una imagen justo debajo."
+            "Agrega en cada pagina un cuadro con numero y una imagen justo debajo (opcional)."
         )
     )
     parser.add_argument("--input", required=True, type=Path, help="Ruta del PDF de entrada")
     parser.add_argument("--output", required=True, type=Path, help="Ruta del PDF de salida")
-    parser.add_argument("--image", required=True, type=Path, help="Ruta de la imagen (firma)")
+    parser.add_argument("--image", required=False, type=Path, help="Ruta de la imagen (firma, opcional)")
     parser.add_argument(
         "--edge",
         choices=["left", "right"],
@@ -185,18 +188,20 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+
 def main() -> None:
     args = parse_args()
 
     if not args.input.exists():
         raise FileNotFoundError(f"No existe el PDF de entrada: {args.input}")
-    if not args.image.exists():
-        raise FileNotFoundError(f"No existe la imagen: {args.image}")
+    image_path = args.image if args.image is not None else None
+    if image_path is not None and not image_path.exists():
+        raise FileNotFoundError(f"No existe la imagen: {image_path}")
 
     anotar_pdf(
         input_pdf=args.input,
         output_pdf=args.output,
-        image_path=args.image,
+        image_path=image_path,
         edge=args.edge,
         box_size=args.box_size,
         border_width=args.border_width,

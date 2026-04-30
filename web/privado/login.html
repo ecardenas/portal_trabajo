@@ -10,19 +10,28 @@
 <body>
   <main class="auth-container">
     <div class="auth-card">
-      <h2>Iniciar sesión</h2>
-      <form id="login-form" class="auth-form">
-        <label for="email">Correo electrónico</label>
-        <input type="email" id="email" name="email" required autocomplete="username" />
-        <label for="password">Contraseña</label>
-        <input type="password" id="password" name="password" required autocomplete="current-password" />
-        <button type="submit" class="btn-primary">Ingresar</button>
+      <div class="auth-tabs">
+        <span class="tab-active"><span class="tab-icon">&#128274;</span> Iniciar sesión</span>
+        <a href="register.html" class="tab-inactive"><span class="tab-icon">&#128100;</span> Registrarse</a>
+      </div>
+      <div class="register-avatar">
+        <img src="/static/img/user_off.png" alt="Avatar" width="60" height="60" />
+      </div>
+      <form id="login-form" class="auth-form compact-form">
+        <div class="input-group">
+          <span class="input-icon">&#128100;</span>
+          <input type="text" id="username" name="username" required placeholder="Usuario o e-mail" autocomplete="username" />
+        </div>
+        <div class="input-group">
+          <span class="input-icon">&#128274;</span>
+          <input type="password" id="password" name="password" required placeholder="Contraseña" autocomplete="current-password" />
+        </div>
+        <button type="submit" class="btn-primary btn-block">Ingresar</button>
       </form>
-      <div class="auth-divider">o</div>
-      <button id="google-login" class="btn-google">Iniciar con Google</button>
-      <button id="outlook-login" class="btn-outlook">Iniciar con Outlook</button>
-      <p class="auth-link">¿No tienes cuenta? <a href="register.html">Regístrate</a></p>
-      <p class="auth-link"><a href="/static/index.html">&larr; Volver a consulta pública</a></p>
+      <div class="auth-links-row">
+        <a href="/static/index.html">&larr; Consulta pública</a>
+        <a href="register.html">¿No tienes cuenta? Regístrate</a>
+      </div>
     </div>
   </main>
   <script src="login.js"></script>

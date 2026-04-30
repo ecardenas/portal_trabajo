@@ -1,3 +1,171 @@
+/* Botón login estilo chip, igual que Consulta Pública */
+.hero-login-btn.chip {
+  background: #2563eb;
+  color: #fff !important;
+  font-weight: 700;
+  border-radius: 16px;
+  padding: 7px 18px;
+  font-size: 1.08em;
+  text-decoration: underline;
+  border: none;
+  box-shadow: 0 2px 8px 0 rgba(0,0,0,0.10);
+  letter-spacing: 0.01em;
+  transition: background 0.18s, color 0.18s;
+  display: inline-block;
+}
+.hero-login-btn.chip:hover, .hero-login-btn.chip:focus {
+  background: #1746a2;
+  color: #fff !important;
+}
+
+@media (max-width: 900px) {
+  .hero-login-btn.chip {
+    padding: 7px 12px;
+    font-size: 1em;
+  }
+}
+.modal-content h2 {
+  color: #13406a !important;
+}
+.btn-acceso-total {
+  background: #fff;
+  color: #2563eb;
+  border: 2px solid #2563eb;
+  font-weight: 900;
+  padding: 8px 18px;
+  border-radius: 10px;
+  font-size: 1.08em;
+  box-shadow: 0 2px 8px 0 rgba(0,0,0,0.10);
+  transition: background 0.18s, color 0.18s, border 0.18s;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  margin-left: 8px;
+}
+.btn-acceso-total:hover, .btn-acceso-total:focus {
+  background: #2563eb;
+  color: #fff;
+  border-color: #2563eb;
+  outline: 2px solid #2563eb;
+}
+
+/* Modal Acceso Total */
+.modal-acceso-total {
+  position: fixed;
+  z-index: 9999;
+  left: 0; top: 0; width: 100vw; height: 100vh;
+  background: rgba(18,32,51,0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 24px 0;
+}
+.modal-content {
+  background: #fff;
+  border-radius: 16px;
+  padding: 32px 24px 24px 24px;
+  min-width: 600px;
+  width: fit-content;
+  max-width: 98vw;
+  box-shadow: 0 8px 32px 0 rgba(18,32,51,0.18);
+  position: relative;
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: #2563eb;
+  cursor: pointer;
+}
+.modal-comparacion {
+  display: flex;
+  flex-direction: row;
+  gap: 24px;
+  margin-top: 18px;
+  flex-wrap: nowrap;
+  justify-content: center;
+  align-items: stretch;
+}
+
+.modal-card {
+  background: #f8fafc;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px 0 rgba(18,32,51,0.08);
+  padding: 18px 20px 20px 20px;
+  min-width: 220px;
+  max-width: 300px;
+  flex: 1 1 220px;
+  color: #13406a !important;
+}
+.modal-card *, .modal-card *:not(strong):not(a) {
+  color: #13406a !important;
+}
+.modal-card strong {
+  color: #13406a !important;
+  font-weight: bold;
+}
+.modal-card button {
+  color: #fff !important;
+}
+.modal-card h3 {
+  color: #2563eb;
+  margin-bottom: 10px;
+  font-size: 1.18em;
+}
+.modal-card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 10px 0;
+}
+.modal-card ul li {
+  margin-bottom: 7px;
+  font-size: 1em;
+  color: #13406a !important;
+}
+.modal-card.acceso-total {
+  border: 2px solid #2563eb;
+  background: #e8f0fe;
+}
+.modal-card.acceso-publico {
+  border: 2px solid #e5e7eb;
+  background: #fff;
+}
+
+/* Forzar horizontal en móviles */
+@media (max-width: 900px) {
+  .modal-content {
+    width: 99vw;
+    min-width: 0;
+    max-width: 99vw;
+    padding: 18px 2vw 18px 2vw;
+  }
+  .modal-comparacion {
+    gap: 8px;
+    flex-wrap: nowrap;
+    flex-direction: row;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .modal-card {
+    min-width: 220px;
+    max-width: 90vw;
+    padding: 10px 6px 14px 6px;
+    font-size: 0.97em;
+    color: #13406a !important;
+  }
+  .modal-card ul li {
+    color: #13406a !important;
+  }
+}
 /* Imagen-botón de detalle y priorización */
 .img-detail-btn, .img-star-btn {
   cursor: pointer;
@@ -16,23 +184,24 @@
 }
 /* Enlace destacado para acciones importantes */
 /* Enlace destacado con máximo contraste */
+/* Botón destacado menos chillón, azul suave */
 .link-accent {
   color: #fff !important;
-  background: #facc15;
-  font-weight: 900;
-  padding: 2px 10px;
-  border-radius: 8px;
-  text-decoration: none;
+  background: #2563eb;
+  font-weight: 700;
+  padding: 7px 18px;
+  border-radius: 16px;
+  text-decoration: underline;
   box-shadow: 0 2px 8px 0 rgba(0,0,0,0.10);
   transition: background 0.18s, color 0.18s;
   letter-spacing: 0.01em;
-  font-size: 1.08em;
+  font-size: 1em;
+  border: none;
+  display: inline-block;
 }
 .link-accent:hover, .link-accent:focus {
-  background: #eab308;
-  color: #fff;
-  outline: 2px solid #fff200;
-  text-decoration: underline;
+  background: #1746a2;
+  color: #fff !important;
 }
 /* Error visual para inputs */
 .input-error {

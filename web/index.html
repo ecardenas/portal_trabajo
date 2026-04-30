@@ -23,20 +23,37 @@
   </script>
 </head>
 <body>
-  <header class="hero">
+
+  <header class="hero" style="position:relative;">
+    <a href="/static/privado/login.html" class="hero-login-btn chip" title="Iniciar sesión" id="btnLoginHeader" style="font-size:1em;">
+      Iniciar Sesión
+    </a>
     <div class="hero-inner hero-flex">
-      <div>
+      <div style="flex:1;position:relative;">
         <span class="hero-eyebrow">Consulta pública</span>
-        <h1 class="hero-title-flex">
+        <h1 class="hero-title-flex" style="margin-bottom: 0.2em;">
           Ofertas Laborales CAS
-          <a href="/static/privado/login.html" class="user-icon-btn hero-login-btn" title="Iniciar sesión">
-            <img src="/static/img/user_off.png" alt="Iniciar sesión" class="user-avatar" width="32" height="32" />
-          </a>
         </h1>
-        <p>
+        <script>
+        // Reubicar el botón de login a la derecha del header, alineado con el borde de la tabla de resultados
+        window.addEventListener('DOMContentLoaded', function() {
+          var loginBtn = document.getElementById('btnLoginHeader');
+          var panel = document.querySelector('.panel');
+          if (loginBtn && panel) {
+            // Obtener el borde derecho de la tabla de resultados
+            var rect = panel.getBoundingClientRect();
+            var headerRect = loginBtn.closest('header').getBoundingClientRect();
+            // Ajustar posición absoluta proporcional
+            loginBtn.style.position = 'absolute';
+            loginBtn.style.top = '38px';
+            loginBtn.style.left = (rect.right - headerRect.left - loginBtn.offsetWidth) + 'px';
+          }
+        });
+        </script>
+        <p style="margin-top:0.5em;">
           Solo se muestran las convocatorias laborales del Estado que <strong>vencen en los próximos 30 días</strong>.<br>
-          Si deseas acceder a <strong>todas las convocatorias</strong>, filtros avanzados y alertas personalizadas, <br>
-          <a href="/static/privado/login.html" class="link-accent">Suscríbete!!!</a>.
+          Si deseas acceder a <strong>todas las convocatorias</strong>, filtros avanzados y alertas personalizadas,<br>
+          <a href="/static/privado/login.html" id="btnAccesoTotal" class="link-accent" style="margin-top:6px;display:inline-block;">Consigue Acceso Total (prueba de 7 días previo registro)</a>
         </p>
       </div>
     </div>
@@ -182,6 +199,6 @@
     </article>
   </dialog>
 
-  <script src="/static/app.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>

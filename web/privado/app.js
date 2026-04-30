@@ -36,11 +36,21 @@ function makeDetailItem(label, value, type = "text", full = false, filter = "") 
   if (!value && value !== 0) return "";
   const fullClass = full ? "detail-item-full" : "";
   if (type === "link") {
+    let url = String(value).trim();
+    // Si empieza con http o https, dejar igual
+    if (/^https?:\/\//i.test(url)) {
+      // ok
+    } else if (/^www\./i.test(url)) {
+      url = "https://" + url;
+    } else {
+      // Si no tiene protocolo ni www, dejarlo tal cual o anteponer https://
+      url = "https://" + url;
+    }
     const safeUrl = escapeHtml(value);
     return `
       <div class="detail-item ${fullClass}">
         <span class="detail-label">${label}</span>
-        <div class="detail-value"><a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${safeUrl}</a></div>
+        <div class="detail-value"><a href="${url}" target="_blank" rel="noopener noreferrer">${safeUrl}</a></div>
       </div>
     `;
   }

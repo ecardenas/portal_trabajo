@@ -1,3 +1,54 @@
+// --- FUNCIONES UTILITARIAS Y DE FORMATO ORIGINALES ---
+// Formatea un número como moneda en soles peruanos
+function money(val) {
+  if (val === null || val === undefined || isNaN(val)) return "-";
+  return Number(val).toLocaleString("es-PE", { style: "currency", currency: "PEN", maximumFractionDigits: 0 });
+}
+
+// Formatea una fecha a DD/MM/YYYY, acepta DD/MM/YYYY, YYYY-MM-DD e ISO
+function formatDate(dateStr) {
+  if (!dateStr) return "-";
+  const d = parseDate(dateStr);
+  if (!d) return "-";
+  return d.toLocaleDateString("es-PE");
+}
+
+// Parsea una fecha en formato ISO, YYYY-MM-DD o DD/MM/YYYY
+function parseDate(str) {
+  if (!str) return null;
+  // Si es DD/MM/YYYY
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) {
+    const [day, month, year] = str.split('/').map(Number);
+    return new Date(year, month - 1, day);
+  }
+  // Si es YYYY-MM-DD o ISO
+  const d = new Date(str);
+  return isNaN(d) ? null : d;
+}
+
+// Devuelve la fecha a las 00:00:00
+function startOfDay(date) {
+  if (!date) return null;
+  const d = new Date(date);
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+// Diferencia de días entre dos fechas
+function diffDays(a, b) {
+  if (!a || !b) return 0;
+  const ms = startOfDay(b) - startOfDay(a);
+  return Math.round(ms / (1000 * 60 * 60 * 24));
+}
+// Formatea un número como moneda en soles peruanos
+function money(val) {
+  if (val === null || val === undefined || isNaN(val)) return "-";
+  return Number(val).toLocaleString("es-PE", { style: "currency", currency: "PEN", maximumFractionDigits: 0 });
+}
+// Utilidad: selector rápido por id
+function $(id) {
+  return document.getElementById(id);
+}
 // Responsive: ocultar filtros y forzar estado vigentes en móvil
 function isMobile() {
   return window.innerWidth < 768;
@@ -63,38 +114,6 @@ if (ordenarSel) {
   }
   renderOrdenarFlecha();
 }
-
-const $ = (id) => document.getElementById(id);
-const money = (v) => (v || v === 0 ? `S/${Number(v).toLocaleString("es-PE")}` : "-");
-
-function parseDate(dmy) {
-  if (!dmy || typeof dmy !== "string") return null;
-  const parts = dmy.split("/");
-  if (parts.length !== 3) return null;
-  const [d, m, y] = parts.map(Number);
-  if (!d || !m || !y) return null;
-  return new Date(y, m - 1, d);
-}
-
-function startOfDay(date) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
-}
-
-function diffDays(fromDate, toDate) {
-  const ms = startOfDay(toDate) - startOfDay(fromDate);
-  return Math.round(ms / 86400000);
-}
-
-function formatDate(dmy) {
-  const dt = parseDate(dmy);
-  if (!dt) return dmy || "-";
-  return dt.toLocaleDateString("es-PE", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-  });
-}
-
 function isVigente(fechaFin) {
   const dt = parseDate(fechaFin);
   if (!dt) return false;
@@ -202,12 +221,33 @@ window.addEventListener('DOMContentLoaded', function() {
       buscar();
     });
   }
-  // Limpiar errores al limpiar filtros
+  // Limpiar filtros y errores
   const btnLimpiar = $("btnLimpiar");
   if (btnLimpiar) {
     btnLimpiar.addEventListener("click", function () {
-      showInputError("puesto", "");
-      showInputError("ubicacion", "");
+      ["puesto", "ubicacion"].forEach(id => {
+        const el = $(id);
+        if (el) el.value = "";
+        showInputError(id, "");
+      });
+      // Si hay otros filtros, agrégalos aquí
+    });
+  }
+
+  // Botón Acceso Total: muestra el modal
+  const btnAccesoTotal = document.getElementById("btnAccesoTotal");
+  const modalAccesoTotal = document.getElementById("modalAccesoTotal");
+  const closeAccesoTotal = document.getElementById("closeAccesoTotal");
+  if (btnAccesoTotal && modalAccesoTotal && closeAccesoTotal) {
+    btnAccesoTotal.addEventListener("click", function () {
+      modalAccesoTotal.style.display = "flex";
+    });
+    closeAccesoTotal.addEventListener("click", function () {
+      modalAccesoTotal.style.display = "none";
+    });
+    // Cerrar modal al hacer click fuera del contenido
+    modalAccesoTotal.addEventListener("click", function (e) {
+      if (e.target === modalAccesoTotal) modalAccesoTotal.style.display = "none";
     });
   }
 });
@@ -514,11 +554,21 @@ function makeDetailItem(label, value, type = "text", full = false, filter = "") 
   const fullClass = full ? "detail-item-full" : "";
 
   if (type === "link") {
+    let url = String(value).trim();
+    // Si empieza con http o https, dejar igual
+    if (/^https?:\/\//i.test(url)) {
+      // ok
+    } else if (/^www\./i.test(url)) {
+      url = "https://" + url;
+    } else {
+      // Si no tiene protocolo ni www, dejarlo tal cual o anteponer https://
+      url = "https://" + url;
+    }
     const safeUrl = escapeHtml(value);
     return `
       <div class="detail-item ${fullClass}">
         <span class="detail-label">${label}</span>
-        <div class="detail-value"><a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${safeUrl}</a></div>
+        <div class="detail-value"><a href="${url}" target="_blank" rel="noopener noreferrer">${safeUrl}</a></div>
       </div>
     `;
   }
