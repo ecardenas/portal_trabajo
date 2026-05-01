@@ -250,12 +250,28 @@ def init_database():
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE,
             email TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL,
             role TEXT NOT NULL DEFAULT 'user',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
+
+    # Migración segura para users en BD existentes
+    cursor.execute("PRAGMA table_info(users)")
+    columnas_users = [row[1] for row in cursor.fetchall()]
+    if "username" not in columnas_users:
+        cursor.execute("ALTER TABLE users ADD COLUMN username TEXT")
+        # Backfill de usuarios existentes para cumplir unicidad sin colisiones
+        cursor.execute(
+            """
+            UPDATE users
+            SET username = 'user_' || id
+            WHERE username IS NULL OR TRIM(username) = ''
+            """
+        )
+    cursor.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username ON users(username)")
     
     # Tabla principal de ofertas
     cursor.execute("""
@@ -290,6 +306,7 @@ def init_database():
             -- Metadata
             fecha_scraping TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             fecha_actualizacion TIMESTAMP,
+            editado BOOLEAN DEFAULT 0,
             activo BOOLEAN DEFAULT 1,
             hash_contenido TEXT
         )
@@ -313,6 +330,26 @@ def init_database():
             END
             """
         )
+    if "editado" not in columnas:
+        cursor.execute("ALTER TABLE ofertas ADD COLUMN editado BOOLEAN DEFAULT 0")
+
+    # Auditoría detallada de ediciones manuales por admin
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS auditoria_edicion_convocatorias (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            oferta_id INTEGER NOT NULL,
+            usuario_id INTEGER,
+            email TEXT,
+            campo TEXT NOT NULL,
+            valor_anterior TEXT,
+            valor_nuevo TEXT,
+            fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(oferta_id) REFERENCES ofertas(id),
+            FOREIGN KEY(usuario_id) REFERENCES users(id)
+        )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_aud_edit_convocatoria_oferta ON auditoria_edicion_convocatorias(oferta_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_aud_edit_convocatoria_fecha ON auditoria_edicion_convocatorias(fecha)")
     
     # Tabla de historial de scraping (legacy)
     cursor.execute("""

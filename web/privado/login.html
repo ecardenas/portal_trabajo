@@ -8,32 +8,61 @@
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <main class="auth-container">
-    <div class="auth-card">
-      <div class="auth-tabs">
-        <span class="tab-active"><span class="tab-icon">&#128274;</span> Iniciar sesión</span>
-        <a href="register.html" class="tab-inactive"><span class="tab-icon">&#128100;</span> Registrarse</a>
+  <main class="register-bg">
+    <section class="register-2col">
+      <div class="register-2col-left">
+        <h2 class="register-title">Bienvenido</h2>
+        <p class="register-subtitle">Ingresa a tu cuenta para acceder a todas las convocatorias y alertas.</p>
+        <form id="login-form" class="register-form-2col login-form-stack">
+          <div class="register-field">
+            <label for="username">Correo electrónico
+              <button type="button" class="register-help-icon" tabindex="-1" aria-label="¿Qué ingresar?">
+                <span class="register-help-circle">?</span>
+                <span class="register-tooltip">Ingresa el correo electrónico con el que te registraste.</span>
+              </button>
+            </label>
+            <div class="register-input-wrap">
+              <span class="register-input-icon">&#128100;</span>
+              <input type="email" id="username" name="username" required placeholder="Ej. correo@email.com" autocomplete="username" autofocus />
+            </div>
+            <span id="loginEmailError" class="login-error is-hidden"></span>
+          </div>
+          <div class="register-field">
+            <label for="password">Contraseña
+              <button type="button" class="register-help-icon" tabindex="-1" aria-label="Contraseña">
+                <span class="register-help-circle">?</span>
+                <span class="register-tooltip">Ingresa la contraseña que elegiste al registrarte.</span>
+              </button>
+            </label>
+            <div class="register-input-wrap">
+              <span class="register-input-icon">&#128274;</span>
+              <input type="password" id="password" name="password" required placeholder="Tu contraseña" autocomplete="current-password" />
+            </div>
+            <span id="loginPasswordError" class="login-error is-hidden"></span>
+          </div>
+          <div id="loginFormError" class="login-form-error is-hidden"></div>
+          <div class="login-submit-row">
+            <button type="submit" id="loginSubmitBtn" class="register-btn login-submit-btn">Ingresar</button>
+          </div>
+        </form>
       </div>
-      <div class="register-avatar">
-        <img src="/static/img/user_off.png" alt="Avatar" width="60" height="60" />
-      </div>
-      <form id="login-form" class="auth-form compact-form">
-        <div class="input-group">
-          <span class="input-icon">&#128100;</span>
-          <input type="text" id="username" name="username" required placeholder="Usuario o e-mail" autocomplete="username" />
+      <div class="register-2col-divider"></div>
+      <div class="register-2col-right login-right">
+        <div class="register-links">
+          <a href="register.html" class="register-link">¿No tienes cuenta? Regístrate</a>
+          <a href="/static/index.html" class="register-link">&larr; Volver a consulta pública</a>
         </div>
-        <div class="input-group">
-          <span class="input-icon">&#128274;</span>
-          <input type="password" id="password" name="password" required placeholder="Contraseña" autocomplete="current-password" />
-        </div>
-        <button type="submit" class="btn-primary btn-block">Ingresar</button>
-      </form>
-      <div class="auth-links-row">
-        <a href="/static/index.html">&larr; Consulta pública</a>
-        <a href="register.html">¿No tienes cuenta? Regístrate</a>
       </div>
-    </div>
+    </section>
   </main>
+  <script>
+    document.querySelectorAll('.register-help-icon').forEach(btn => {
+      btn.addEventListener('mouseenter', function() { this.querySelector('.register-tooltip').style.display = 'block'; });
+      btn.addEventListener('mouseleave', function() { this.querySelector('.register-tooltip').style.display = 'none'; });
+      btn.addEventListener('focus', function() { this.querySelector('.register-tooltip').style.display = 'block'; });
+      btn.addEventListener('blur', function() { this.querySelector('.register-tooltip').style.display = 'none'; });
+    });
+  </script>
   <script src="login.js"></script>
 </body>
 </html>

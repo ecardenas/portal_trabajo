@@ -10,24 +10,26 @@
   <link rel="stylesheet" href="star.css" />
 </head>
 <body>
-  <header class="hero">
+  <header class="hero" style="position:relative;">
+    <div style="max-width:1200px;margin:0 auto;padding:0 14px;position:relative;">
+      <div id="userInfo" style="display:none;position:absolute;right:14px;top:18px;z-index:10;">
+        <button id="userMenuBtn" type="button" class="chip" title="Menú usuario" style="display:inline-flex;align-items:center;gap:8px;padding:8px 12px;color:#fff;border-color:rgba(255,255,255,0.35);background:rgba(255,255,255,0.12);">
+          <span id="userName" style="font-weight:700;"></span>
+          <span aria-hidden="true">▾</span>
+        </button>
+        <div class="user-dropdown" id="userDropdown" style="display:none;position:absolute;right:0;top:44px;z-index:21;min-width:190px;">
+          <button id="btnPerfil">Perfil...</button>
+          <button id="btnCerrarSesion">Cerrar Sesión</button>
+        </div>
+      </div>
+    </div>
     <div class="hero-inner hero-flex">
       <div>
         <h1 class="hero-title-flex">
-          Ofertas CAS <span title="Privado" style="font-size:1.1em;vertical-align:middle;">🔒</span>
-          <span id="userInfo" class="user-info-flex" style="display:none;">
-            <button id="userMenuBtn" class="user-icon-btn" title="Menú usuario">
-              <img src="../img/user_on.png" alt="Usuario" class="user-avatar" width="32" height="32" />
-            </button>
-            <span id="userName" class="user-name user-name-contrast"></span>
-          </span>
+          Ofertas Laborales CAS <span title="Privado" style="font-size:1.1em;vertical-align:middle;">🔒</span>
         </h1>
         <p>Accede a todos los filtros, sin publicidad y con alertas personalizadas.</p>
       </div>
-    </div>
-    <div class="user-dropdown" id="userDropdown" style="display:none;position:absolute;right:32px;top:70px;z-index:10;">
-      <button id="btnActualizarDatos">Actualizar datos</button>
-      <button id="btnCerrarSesion">Cerrar sesión</button>
     </div>
   </header>
   <main class="container">
@@ -45,7 +47,7 @@
         <div class="field col-4">
           <label for="q" style="display:flex;align-items:center;gap:6px;position:relative;">
             Puesto
-            <button type="button" id="qHelpBtn" class="help-icon-btn" tabindex="0" aria-label="¿Cómo buscar?">
+            <button type="button" id="qHelpBtn" class="help-icon-btn" tabindex="-1" aria-label="¿Cómo buscar?">
               <span class="help-icon">?</span>
               <span class="tooltip">Ingrese un texto de <b>mínimo 5 caracteres</b> para buscar por el <b>nombre del puesto</b>.<br>Ejemplo: "Analista", "Especialista".</span>
             </button>
@@ -57,7 +59,7 @@
         <div class="field col-4">
           <label for="carrera" style="display:flex;align-items:center;gap:6px;position:relative;">
             Carrera o formación
-            <button type="button" id="carreraHelpBtn" class="help-icon-btn" tabindex="0" aria-label="¿Cómo buscar carrera?">
+            <button type="button" id="carreraHelpBtn" class="help-icon-btn" tabindex="-1" aria-label="¿Cómo buscar carrera?">
               <span class="help-icon">?</span>
               <span class="tooltip">Ingrese una carrera o formación de <b>mínimo 5 caracteres</b>.<br>Ejemplo: "Derecho", "Ingeniería".</span>
             </button>
@@ -69,7 +71,7 @@
         <div class="field col-4">
           <label for="especializacion" style="display:flex;align-items:center;gap:6px;position:relative;">
             Especialización
-            <button type="button" id="especializacionHelpBtn" class="help-icon-btn" tabindex="0" aria-label="¿Cómo buscar especialización?">
+            <button type="button" id="especializacionHelpBtn" class="help-icon-btn" tabindex="-1" aria-label="¿Cómo buscar especialización?">
               <span class="help-icon">?</span>
               <span class="tooltip">Ingrese una especialización de <b>mínimo 5 caracteres</b>.<br>Ejemplo: "Contrataciones", "TI".</span>
             </button>
@@ -81,7 +83,7 @@
         <div class="field col-4">
           <label for="ubicacion" style="display:flex;align-items:center;gap:6px;position:relative;">
             Ubicación
-            <button type="button" id="ubicacionHelpBtn" class="help-icon-btn" tabindex="0" aria-label="¿Cómo buscar ubicación?">
+            <button type="button" id="ubicacionHelpBtn" class="help-icon-btn" tabindex="-1" aria-label="¿Cómo buscar ubicación?">
               <span class="help-icon">?</span>
               <span class="tooltip">Ingrese una ciudad, provincia o región de <b>mínimo 3 caracteres</b>.<br>Ejemplo: "Lima", "Cusco", "Arequipa".</span>
             </button>
@@ -93,7 +95,7 @@
         <div class="field col-4">
           <label for="entidad" style="display:flex;align-items:center;gap:6px;position:relative;">
             Entidad
-            <button type="button" id="entidadHelpBtn" class="help-icon-btn" tabindex="0" aria-label="¿Cómo buscar entidad?">
+            <button type="button" id="entidadHelpBtn" class="help-icon-btn" tabindex="-1" aria-label="¿Cómo buscar entidad?">
               <span class="help-icon">?</span>
               <span class="tooltip">Ingrese el nombre de la entidad de <b>mínimo 3 caracteres</b>.<br>Ejemplo: "SERVIR", "MTC", "MINSA".</span>
             </button>
@@ -105,16 +107,17 @@
         <div class="field col-4">
           <label for="situacion" style="display:flex;align-items:center;gap:6px;position:relative;">
             Situación
-            <button type="button" id="situacionHelpBtn" class="help-icon-btn" tabindex="0" aria-label="¿Cómo filtrar situación?">
+            <button type="button" id="situacionHelpBtn" class="help-icon-btn" tabindex="-1" aria-label="¿Cómo filtrar situación?">
               <span class="help-icon">?</span>
-              <span class="tooltip">Filtra por vencimiento:<br><b>Vencen pronto</b>: menos de 3 días.<br><b>Vence esta semana</b>: menos de 7 días.<br><b>Mis convocatorias</b>: solo tus postulaciones.</span>
+              <span class="tooltip">Filtra por etiqueta:<br><b>Vence hoy</b>: vence este día.<br><b>Vence pronto</b>: vence en 1–7 días.<br><b>Nuevo</b>: publicado hace ≤3 días.<br><b>Mis convocatorias</b>: las que guardaste.</span>
             </button>
           </label>
           <div class="select-wrap">
             <select id="situacion" class="filter-control">
               <option value="todos" selected>Todos</option>
-              <option value="vence-pronto">Vencen pronto</option>
-              <option value="vence-semana">Vence esta semana</option>
+              <option value="vence-hoy">Vence hoy</option>
+              <option value="vence-pronto">Vence pronto (1–7 días)</option>
+              <option value="nuevo">Nuevo (últimos 3 días)</option>
               <option value="mis">Mis convocatorias</option>
             </select>
           </div>
@@ -122,7 +125,7 @@
         <div class="field col-6">
           <label style="display:flex;align-items:center;gap:6px;position:relative;">
             Remuneración
-            <button type="button" id="remHelpBtn" class="help-icon-btn" tabindex="0" aria-label="¿Cómo filtrar remuneración?">
+            <button type="button" id="remHelpBtn" class="help-icon-btn" tabindex="-1" aria-label="¿Cómo filtrar remuneración?">
               <span class="help-icon">?</span>
               <span class="tooltip">Solo se permiten números. El valor máximo es el monto más alto de la base de datos.</span>
             </button>
@@ -169,7 +172,7 @@
               <th class="sortable" data-sort="entidad">Entidad <span class="sort-ind"></span></th>
               <th class="sortable" data-sort="ubicacion">Ubicación <span class="sort-ind"></span></th>
               <th class="sortable" data-sort="remuneracion">Remuneración <span class="sort-ind"></span></th>
-              <th class="sortable" data-sort="fecha_fin">Fecha Máxima de postulación <span class="sort-ind"></span></th>
+              <th class="sortable" data-sort="fecha_fin">Fecha fin de publicación <span class="sort-ind"></span></th>
               <th>Etiquetas</th>
               <th>Acción</th>
             </tr>
@@ -188,18 +191,49 @@
   <script src="misconv.js"></script>
   <script src="app.js"></script>
   <!-- Modal de detalle de convocatoria (igual que público) -->
-    <dialog id="detalleDialog">
-      <article>
-        <header>
-          <div class="dialog-title-wrap">
-            <span class="dialog-eyebrow">Detalle de convocatoria</span>
-            <h3 id="dPuesto">Detalle</h3>
-          </div>
-          <button id="cerrarDetalle" type="button">Cerrar</button>
-        </header>
-        <div id="detalleBody"></div>
-      </article>
-    </dialog>
+  <dialog id="detalleDialog">
+    <article>
+      <header>
+        <div class="dialog-title-wrap">
+          <span class="dialog-eyebrow">Detalle de convocatoria</span>
+          <h3 id="dPuesto">Detalle</h3>
+        </div>
+        <button id="cerrarDetalle" type="button">Cerrar</button>
+      </header>
+      <div id="detalleBody"></div>
+    </article>
+  </dialog>
   <!-- Fin modal detalle -->
+
+  <!-- Modal edición convocatoria (solo admin) -->
+  <dialog id="editDialog" style="max-width:480px;width:95%;border-radius:12px;padding:0;border:none;">
+    <article style="padding:28px 24px 20px;">
+      <header style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+        <h3 style="margin:0;font-size:1.1em;">Editar convocatoria</h3>
+        <button id="cerrarEdit" type="button" class="ghost" style="font-size:1.2em;line-height:1;padding:4px 10px;">✕</button>
+      </header>
+      <form id="editForm">
+        <input type="hidden" id="editId" />
+        <div style="margin-bottom:14px;">
+          <label for="editRemuneracion" style="font-weight:600;display:block;margin-bottom:4px;">Remuneración (S/)</label>
+          <input type="number" id="editRemuneracion" min="0" step="0.01" style="width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:6px;" placeholder="Ej. 3500" />
+        </div>
+        <div style="margin-bottom:20px;">
+          <label for="editLink" style="font-weight:600;display:block;margin-bottom:4px;">Link de postulación</label>
+          <input type="url" id="editLink" style="width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:6px;" placeholder="https://..." />
+        </div>
+        <div style="margin-bottom:20px;">
+          <label for="editFechaFin" style="font-weight:600;display:block;margin-bottom:4px;">Fecha fin de publicación</label>
+          <input type="text" id="editFechaFin" style="width:100%;padding:8px 10px;border:1px solid #ccc;border-radius:6px;" placeholder="Ej. 12/05/2026" />
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button type="submit" id="editSubmitBtn" style="flex:1;">Guardar cambios</button>
+          <button type="button" id="cerrarEdit2" class="ghost" style="flex:1;">Cancelar</button>
+        </div>
+        <p id="editMsg" style="margin-top:10px;font-size:0.9em;text-align:center;"></p>
+      </form>
+    </article>
+  </dialog>
+  <!-- Fin modal edición -->
 </body>
 </html>

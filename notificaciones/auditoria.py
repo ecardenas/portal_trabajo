@@ -15,3 +15,24 @@ def registrar_auditoria(usuario_id, email, accion, parametros=None, resultado=No
     )
     conn.commit()
     conn.close()
+
+def registrar_auditoria_edicion_convocatoria(oferta_id, usuario_id, email, campo, valor_anterior, valor_nuevo):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        """
+        INSERT INTO auditoria_edicion_convocatorias
+        (oferta_id, usuario_id, email, campo, valor_anterior, valor_nuevo)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (
+            oferta_id,
+            usuario_id,
+            email,
+            campo,
+            str(valor_anterior) if valor_anterior is not None else None,
+            str(valor_nuevo) if valor_nuevo is not None else None,
+        )
+    )
+    conn.commit()
+    conn.close()

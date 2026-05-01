@@ -45,6 +45,7 @@ init_database()
 # Registrar routers
 app.include_router(auth_router)
 app.include_router(mis_convocatorias_router)
+app.include_router(convocatorias_routes.router)
 DATABASE_FILE = "empleos_servir.db"
 
 def get_connection():
@@ -212,17 +213,19 @@ def buscar_ofertas(
             conditions.append("date(substr(fecha_fin, 7, 4) || '-' || substr(fecha_fin, 4, 2) || '-' || substr(fecha_fin, 1, 2)) < date('now')")
 
     # Filtro de situación (etiquetas)
-    if situacion == "vence-pronto":
-        # Vence en los próximos 3 días (incluye hoy)
-        conditions.append("date(substr(fecha_fin, 7, 4) || '-' || substr(fecha_fin, 4, 2) || '-' || substr(fecha_fin, 1, 2)) >= date('now')")
-        conditions.append("date(substr(fecha_fin, 7, 4) || '-' || substr(fecha_fin, 4, 2) || '-' || substr(fecha_fin, 1, 2)) <= date('now', '+3 days')")
-    elif situacion == "vence-semana":
-        # Vence en los próximos 7 días (incluye hoy)
-        conditions.append("date(substr(fecha_fin, 7, 4) || '-' || substr(fecha_fin, 4, 2) || '-' || substr(fecha_fin, 1, 2)) >= date('now')")
+    if situacion == "vence-hoy":
+        # Vence exactamente hoy
+        conditions.append("date(substr(fecha_fin, 7, 4) || '-' || substr(fecha_fin, 4, 2) || '-' || substr(fecha_fin, 1, 2)) = date('now')")
+    elif situacion == "vence-pronto":
+        # Vence en los próximos 1–7 días (no incluye hoy)
+        conditions.append("date(substr(fecha_fin, 7, 4) || '-' || substr(fecha_fin, 4, 2) || '-' || substr(fecha_fin, 1, 2)) > date('now')")
         conditions.append("date(substr(fecha_fin, 7, 4) || '-' || substr(fecha_fin, 4, 2) || '-' || substr(fecha_fin, 1, 2)) <= date('now', '+7 days')")
+    elif situacion == "nuevo":
+        # Publicado en los últimos 3 días
+        conditions.append("date(substr(fecha_inicio, 7, 4) || '-' || substr(fecha_inicio, 4, 2) || '-' || substr(fecha_inicio, 1, 2)) >= date('now', '-3 days')")
+        conditions.append("date(substr(fecha_inicio, 7, 4) || '-' || substr(fecha_inicio, 4, 2) || '-' || substr(fecha_inicio, 1, 2)) <= date('now')")
     elif situacion == "mis":
-        # Placeholder: solo mis postulaciones (requiere autenticación y lógica adicional)
-        # Aquí podrías filtrar por usuario autenticado si tienes esa relación en la BD
+        # Filtrado client-side: el frontend filtra por misConvocatorias.ids
         pass
     # Filtro q: buscar en puesto o formacion, omitiendo tildes
     if q:

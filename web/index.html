@@ -25,35 +25,22 @@
 <body>
 
   <header class="hero" style="position:relative;">
-    <a href="/static/privado/login.html" class="hero-login-btn chip" title="Iniciar sesión" id="btnLoginHeader" style="font-size:1em;">
-      Iniciar Sesión
-    </a>
+    <div style="max-width:1200px;margin:0 auto;padding:0 14px;position:relative;">
+      <a href="/static/privado/login.html" class="hero-login-btn chip" title="Iniciar sesión" id="btnLoginHeader" style="font-size:1em;position:absolute;top:18px;right:14px;z-index:10;">
+        Iniciar Sesión
+      </a>
+    </div>
     <div class="hero-inner hero-flex">
       <div style="flex:1;position:relative;">
         <span class="hero-eyebrow">Consulta pública</span>
         <h1 class="hero-title-flex" style="margin-bottom: 0.2em;">
           Ofertas Laborales CAS
         </h1>
-        <script>
-        // Reubicar el botón de login a la derecha del header, alineado con el borde de la tabla de resultados
-        window.addEventListener('DOMContentLoaded', function() {
-          var loginBtn = document.getElementById('btnLoginHeader');
-          var panel = document.querySelector('.panel');
-          if (loginBtn && panel) {
-            // Obtener el borde derecho de la tabla de resultados
-            var rect = panel.getBoundingClientRect();
-            var headerRect = loginBtn.closest('header').getBoundingClientRect();
-            // Ajustar posición absoluta proporcional
-            loginBtn.style.position = 'absolute';
-            loginBtn.style.top = '38px';
-            loginBtn.style.left = (rect.right - headerRect.left - loginBtn.offsetWidth) + 'px';
-          }
-        });
-        </script>
+
         <p style="margin-top:0.5em;">
           Solo se muestran las convocatorias laborales del Estado que <strong>vencen en los próximos 30 días</strong>.<br>
           Si deseas acceder a <strong>todas las convocatorias</strong>, filtros avanzados y alertas personalizadas,<br>
-          <a href="/static/privado/login.html" id="btnAccesoTotal" class="link-accent" style="margin-top:6px;display:inline-block;">Consigue Acceso Total (prueba de 7 días previo registro)</a>
+          <a href="/static/privado/register.html" id="btnAccesoTotal" class="link-accent" style="margin-top:6px;display:inline-block;">Consigue Acceso Total (prueba de 7 días previo registro)</a>
         </p>
       </div>
     </div>
@@ -102,19 +89,19 @@
         <div class="field col-6">
           <label for="puesto" style="display:flex;align-items:center;gap:6px;position:relative;">
             Descripción de la convocatoria
-            <button type="button" id="descHelpBtn" class="help-icon-btn" tabindex="0" aria-label="¿Cómo buscar?">
+            <button type="button" id="descHelpBtn" class="help-icon-btn" tabindex="-1" aria-label="¿Cómo buscar?">
               <span class="help-icon">?</span>
               <span class="tooltip">Ingrese un texto de <b>mínimo 5 caracteres</b> para buscar por el <b>nombre del puesto</b> o por la <b>carrera o formación</b> requerida en la convocatoria.<br>Ejemplo: "Ingeniería", "Derecho", "Analista".</span>
             </button>
           </label>
           <div class="input-wrap">
-            <input id="puesto" class="filter-control" type="text" placeholder="Ej. Analista, Derecho, Ingeniería" />
+            <input id="puesto" class="filter-control" type="text" placeholder="Ej. Analista, Derecho, Ingeniería" autofocus />
           </div>
         </div>
         <div class="field col-6">
           <label for="ubicacion" style="display:flex;align-items:center;gap:6px;position:relative;">
             Ubicación
-            <button type="button" id="ubicacionHelpBtn" class="help-icon-btn" tabindex="0" aria-label="¿Cómo buscar ubicación?">
+            <button type="button" id="ubicacionHelpBtn" class="help-icon-btn" tabindex="-1" aria-label="¿Cómo buscar ubicación?">
               <span class="help-icon">?</span>
               <span class="tooltip">Ingrese una ciudad, provincia o región de <b>mínimo 3 caracteres</b> para filtrar las convocatorias por ubicación geográfica.<br>Ejemplo: "Lima", "Cusco", "Arequipa".</span>
             </button>
@@ -166,7 +153,7 @@
               <th class="sortable" data-sort="entidad">Entidad <span class="sort-ind"></span></th>
               <th class="sortable" data-sort="ubicacion">Ubicación <span class="sort-ind"></span></th>
               <th class="sortable" data-sort="remuneracion">Remuneración <span class="sort-ind"></span></th>
-              <th class="sortable" data-sort="fecha_fin">Fecha máxima de postulación <span class="sort-ind"></span></th>
+              <th class="sortable" data-sort="fecha_fin">Fecha fin de publicación <span class="sort-ind"></span></th>
               <th>Etiquetas</th>
               <th>Acción</th>
             </tr>

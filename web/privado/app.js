@@ -200,6 +200,8 @@ function buildQuery() {
   if (remVal) params.set("remVal", remVal);
   if (remOp) params.set("remOp", remOp);
   if (situacion && situacion !== "todos") params.set("situacion", situacion);
+  // solo aplicar solo_30 cuando no hay filtro de situación específico
+  if (!situacion || situacion === "todos") params.set("solo_30", "true");
 
   return `/buscar?${params.toString()}`;
 }
@@ -267,6 +269,7 @@ function getOfferTags(item) {
   const today = startOfDay(new Date());
   const fechaFin = parseDate(item.fecha_fin);
   const fechaInicio = parseDate(item.fecha_inicio);
+  const id_oferta = item.id_oferta || item.id;
   const tags = [];
   if (fechaFin) {
     const daysToClose = diffDays(today, fechaFin);
@@ -282,7 +285,10 @@ function getOfferTags(item) {
       tags.push({ key: "nuevo", label: "Nuevo", cls: "tag-info" });
     }
   }
-  return tags.slice(0, 2);
+  if (typeof misConvocatorias !== 'undefined' && misConvocatorias.ids && misConvocatorias.ids.has(String(id_oferta))) {
+    tags.push({ key: "mis", label: "Mis convocatorias", cls: "tag-star" });
+  }
+  return tags;
 }
 function renderTags(item) {
   const tags = getOfferTags(item);
@@ -390,8 +396,14 @@ async function runSearch(options = {}) {
   let total = 0;
   try {
     const data = await fetchJSON(buildQuery());
-    const items = data.ofertas || [];
+    let items = data.ofertas || [];
     total = data.total || 0;
+    // Filtro client-side para "mis convocatorias"
+    const situacionVal = $("situacion") ? $("situacion").value : "todos";
+    if (situacionVal === "mis" && typeof misConvocatorias !== 'undefined' && misConvocatorias.ids) {
+      items = items.filter(it => misConvocatorias.ids.has(String(it.id_oferta || it.id)));
+      total = items.length;
+    }
     state.totalPages = Math.max(1, Math.ceil(total / state.limit));
     console.log('[DEBUG] total:', total, 'state.totalPages:', state.totalPages, 'state.page:', state.page);
     renderRows(items);
@@ -569,9 +581,32 @@ function bindEvents() {
         </div>
       `;
       $("detalleBody").innerHTML = summary + desktopLayout + mobileAccordion;
+      injectEditButton(id, d);
     } catch (e) {
       $("detalleBody").innerHTML = `<strong>No se pudo cargar el detalle</strong>`;
     }
+  }
+  // Botón editar para admin: se inyecta dinámicamente en el header del dialog
+  function injectEditButton(id, d) {
+    const header = document.querySelector('#detalleDialog article header');
+    if (!header) return;
+    let existingBtn = document.getElementById('btnEditarConvocatoria');
+    if (existingBtn) existingBtn.remove();
+    if (!window._isAdmin) return;
+    const btn = document.createElement('button');
+    btn.id = 'btnEditarConvocatoria';
+    btn.type = 'button';
+    btn.textContent = '✏️ Editar';
+    btn.onclick = () => {
+      document.getElementById('editId').value = id;
+      document.getElementById('editRemuneracion').value = d.remuneracion ?? '';
+      document.getElementById('editLink').value = d.link_postulacion ?? '';
+      document.getElementById('editFechaFin').value = d.fecha_fin ?? '';
+      document.getElementById('editMsg').textContent = '';
+      document.getElementById('editDialog').showModal();
+    };
+    const cerrarBtn = document.getElementById('cerrarDetalle');
+    header.insertBefore(btn, cerrarBtn);
   }
   window.showDetail = showDetail;
   if (document.getElementById('cerrarDetalle')) {
@@ -590,7 +625,11 @@ function bindEvents() {
     el.addEventListener("input", renderActiveFiltersChip);
     el.addEventListener("change", renderActiveFiltersChip);
   });
-  if ($("situacion")) $("situacion").addEventListener("change", renderActiveFiltersChip);
+  if ($('situacion')) $('situacion').addEventListener('change', function() {
+    renderActiveFiltersChip();
+    state.page = 1;
+    runSearch();
+  });
 }
 
 function renderFiltrosAvanzados() {
@@ -627,7 +666,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Mostrar usuario en hero
   const userInfo = document.getElementById('userInfo');
   userInfo.style.display = 'flex';
-  document.getElementById('userName').textContent = user.email || user.name || 'Usuario';
+  document.getElementById('userName').textContent = user.username || user.email || user.name || 'Usuario';
+  // Marcar si es admin
+  window._isAdmin = user.role === 'admin';
   // Menú usuario
   const userMenuBtn = document.getElementById('userMenuBtn');
   const userDropdown = document.getElementById('userDropdown');
@@ -635,12 +676,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     e.stopPropagation();
     userDropdown.style.display = userDropdown.style.display === 'block' ? 'none' : 'block';
   };
+  userDropdown.onclick = (e) => { e.stopPropagation(); };
   document.body.onclick = () => { userDropdown.style.display = 'none'; };
   document.getElementById('btnCerrarSesion').onclick = () => {
     localStorage.removeItem('jwt');
     window.location.href = '/static/index.html';
   };
-  document.getElementById('btnActualizarDatos').onclick = () => {
+  document.getElementById('btnPerfil').onclick = () => {
     alert('Funcionalidad próximamente');
   };
   // Obtener monto máximo para validación de remuneración
@@ -652,4 +694,53 @@ document.addEventListener('DOMContentLoaded', async () => {
   await cargarMisConvocatorias();
   renderFiltrosAvanzados();
   setTimeout(() => runSearch(), 100);
+
+  // Modal edición convocatoria
+  const editDialog = document.getElementById('editDialog');
+  const editForm = document.getElementById('editForm');
+  const editMsg = document.getElementById('editMsg');
+  function cerrarEditModal() { if (editDialog) editDialog.close(); }
+  document.getElementById('cerrarEdit')?.addEventListener('click', cerrarEditModal);
+  document.getElementById('cerrarEdit2')?.addEventListener('click', cerrarEditModal);
+  if (editForm) {
+    editForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const id = document.getElementById('editId').value;
+      const remuneracion = document.getElementById('editRemuneracion').value;
+      const link = document.getElementById('editLink').value.trim();
+      const fechaFin = document.getElementById('editFechaFin').value.trim();
+      const body = {};
+      if (remuneracion !== '') body.remuneracion = parseFloat(remuneracion);
+      if (link !== '') body.link_postulacion = link;
+      if (fechaFin !== '') body.fecha_fin = fechaFin;
+      const submitBtn = document.getElementById('editSubmitBtn');
+      submitBtn.disabled = true;
+      editMsg.style.color = '#555';
+      editMsg.textContent = 'Guardando...';
+      try {
+        const res = await fetch(`/convocatorias/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + localStorage.getItem('jwt')
+          },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (res.ok) {
+          editMsg.style.color = '#15803d';
+          editMsg.textContent = '✓ Cambios guardados correctamente';
+          setTimeout(() => cerrarEditModal(), 1200);
+        } else {
+          editMsg.style.color = '#b91c1c';
+          editMsg.textContent = data.detail || 'Error al guardar';
+        }
+      } catch {
+        editMsg.style.color = '#b91c1c';
+        editMsg.textContent = 'Error de red o servidor';
+      } finally {
+        submitBtn.disabled = false;
+      }
+    });
+  }
 });

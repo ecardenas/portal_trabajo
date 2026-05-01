@@ -15,41 +15,156 @@
   <link rel="stylesheet" href="../styles.css" />
   <link rel="stylesheet" href="styles.css" />
 </head>
-<body>
-  <main class="auth-container">
-    <div class="auth-card">
-      <div class="auth-tabs">
-        <a href="login.html" class="tab-inactive"><span class="tab-icon">&#128274;</span> Iniciar sesión</a>
-        <span class="tab-active"><span class="tab-icon">&#128100;</span> Registrarse</span>
+  <main class="register-bg">
+    <section class="register-2col">
+      <div class="register-2col-left">
+        <h2 class="register-title">Crea tu cuenta</h2>
+        <p class="register-subtitle">Accede a todas las convocatorias, alertas y filtros avanzados.</p>
+        <form id="register-form" class="register-form-2col">
+          <div class="register-row pw-row pw-align-horizontal-labels">
+            <div class="register-field">
+              <label for="username">Nombre de usuario
+                <button type="button" class="register-help-icon" tabindex="-1" aria-label="¿Qué es el nombre de usuario?">
+                  <span class="register-help-circle">?</span>
+                  <span class="register-tooltip">Elige un nombre único para identificarte en la plataforma. Solo letras, números y guiones bajos.</span>
+                </button>
+              </label>
+              <div class="register-input-wrap">
+                <span class="register-input-icon">&#128100;</span>
+                <input type="text" id="username" name="username" required pattern="[A-Za-z0-9_.-]{3,32}" placeholder="Ej. usuario123" autocomplete="username" autofocus />
+              </div>
+            </div>
+            <div class="register-field">
+              <label for="email">Correo electrónico
+                <button type="button" class="register-help-icon" tabindex="-1" aria-label="¿Por qué se solicita el correo?">
+                  <span class="register-help-circle">?</span>
+                  <span class="register-tooltip">Se usará para notificaciones y recuperación de cuenta. Debe ser un correo válido y activo.</span>
+                </button>
+              </label>
+              <div class="register-input-wrap">
+                <span class="register-input-icon">&#9993;</span>
+                <input type="email" id="email" name="email" required placeholder="Ej. usuario@email.com" autocomplete="email" />
+              </div>
+            </div>
+          </div>
+          <div class="register-row">
+            <div class="register-field">
+              <label for="password">Contraseña
+                <button type="button" class="register-help-icon" tabindex="-1" aria-label="¿Qué requisitos tiene la contraseña?">
+                  <span class="register-help-circle">?</span>
+                  <span class="register-tooltip">Debe tener al menos 6 caracteres, incluir mayúsculas, minúsculas y números.</span>
+                </button>
+              </label>
+              <div class="register-input-wrap">
+                <span class="register-input-icon">&#128274;</span>
+                <input type="password" id="password" name="password" required placeholder="Mínimo 6 caracteres" autocomplete="new-password" />
+              </div>
+            </div>
+            <div class="register-field">
+              <label for="password2">Confirmar contraseña
+                <button type="button" class="register-help-icon" tabindex="-1" aria-label="Repite la contraseña">
+                  <span class="register-help-circle">?</span>
+                  <span class="register-tooltip">Vuelve a escribir la contraseña para evitar errores de tipeo.</span>
+                </button>
+              </label>
+              <div class="register-input-wrap">
+                <span class="register-input-icon">&#128274;</span>
+                <input type="password" id="password2" name="password2" required placeholder="Repite la contraseña" autocomplete="new-password" />
+              </div>
+            </div>
+          </div>
+          <div id="password-checklist" class="register-password-checklist">
+            <span id="pw-length" class="pw-check">● Mínimo 6 caracteres</span>
+            <span id="pw-mayus" class="pw-check">● Una mayúscula</span>
+            <span id="pw-minus" class="pw-check">● Una minúscula</span>
+            <span id="pw-num" class="pw-check">● Un número</span>
+          </div>
+          <div class="register-row" style="align-items:flex-end;">
+            <div class="register-field">
+              <label for="celular">Celular
+                <button type="button" class="register-help-icon" tabindex="-1" aria-label="¿Por qué se solicita el celular?">
+                  <span class="register-help-circle">?</span>
+                  <span class="register-tooltip">Para notificaciones importantes y recuperación de cuenta. Solo números peruanos válidos.</span>
+                </button>
+              </label>
+              <div class="register-input-wrap">
+                <span class="register-input-icon">&#128241;</span>
+                <input type="tel" id="celular" name="celular" required pattern="9[0-9]{8}" maxlength="9" placeholder="Ej. 912345678" autocomplete="tel" />
+              </div>
+            </div>
+            <div class="register-field register-btn-field" style="display:flex;flex-direction:column;justify-content:flex-end;">
+              <label style="visibility:hidden;font-weight:600;font-size:1em;">&nbsp;</label>
+              <button type="submit" class="register-btn">Registrarme ahora</button>
+            </div>
+          </div>
+        </form>
       </div>
-      <div class="register-avatar">
-        <img src="/static/img/user_off.png" alt="Avatar" width="60" height="60" />
+      <div class="register-2col-divider"></div>
+      <div class="register-2col-right">
+        <!-- Imagen de fondo decorativa, no ícono -->
+        <div class="register-links">
+          <a href="login.html" class="register-link">¿Ya tienes cuenta? Inicia sesión</a>
+          <a href="/static/index.html" class="register-link">&larr; Volver a consulta pública</a>
+        </div>
       </div>
-      <form id="register-form" class="auth-form compact-form">
-        <div class="input-group">
-          <span class="input-icon">&#128100;</span>
-          <input type="text" id="username" name="username" required pattern="[A-Za-z0-9_.-]{3,32}" placeholder="Usuario o e-mail" autocomplete="username" />
-        </div>
-        <div class="input-group">
-          <span class="input-icon">&#128241;</span>
-          <input type="tel" id="celular" name="celular" required pattern="9[0-9]{8}" maxlength="9" placeholder="Celular" autocomplete="tel" />
-        </div>
-        <div class="input-group">
-          <span class="input-icon">&#128274;</span>
-          <input type="password" id="password" name="password" required placeholder="Contraseña" autocomplete="new-password" />
-        </div>
-        <div class="input-group">
-          <span class="input-icon">&#128274;</span>
-          <input type="password" id="password2" name="password2" required placeholder="Confirmar contraseña" autocomplete="new-password" />
-        </div>
-        <button type="submit" class="btn-primary btn-block">Registrarme</button>
-      </form>
-      <div class="auth-links-row">
-        <a href="/static/index.html">&larr; Consulta pública</a>
-        <a href="login.html">¿Ya tienes cuenta? Inicia sesión</a>
-      </div>
-    </div>
+    </section>
   </main>
-  <script src="register.js"></script>
-</body>
-</html>
+            });
+            btn.addEventListener('blur', function() {
+              this.querySelector('.register-tooltip').style.display = 'none';
+            });
+            btn.addEventListener('mouseenter', function() {
+              this.querySelector('.register-tooltip').style.display = 'block';
+            });
+            btn.addEventListener('mouseleave', function() {
+              this.querySelector('.register-tooltip').style.display = 'none';
+            });
+          });
+        </script>
+      <div class="register-links">
+        <a href="login.html" class="register-link">¿Ya tienes cuenta? Inicia sesión</a>
+        <a href="/static/index.html" class="register-link">&larr; Volver a consulta pública</a>
+      <script>
+        // Mostrar/ocultar tooltip en los iconos de ayuda
+        document.querySelectorAll('.register-help-icon').forEach(btn => {
+          btn.addEventListener('focus', function() {
+            this.querySelector('.register-tooltip').style.display = 'block';
+          });
+          btn.addEventListener('blur', function() {
+            this.querySelector('.register-tooltip').style.display = 'none';
+          });
+          btn.addEventListener('mouseenter', function() {
+            this.querySelector('.register-tooltip').style.display = 'block';
+          });
+          btn.addEventListener('mouseleave', function() {
+            this.querySelector('.register-tooltip').style.display = 'none';
+          });
+        });
+
+        // Validación de complejidad de contraseña en tiempo real
+        const pw = document.getElementById('password');
+        if (pw) {
+          pw.addEventListener('input', function() {
+            const val = pw.value;
+            document.getElementById('pw-length').style.color = val.length >= 6 ? '#15803d' : '#b91c1c';
+            document.getElementById('pw-mayus').style.color = /[A-Z]/.test(val) ? '#15803d' : '#b91c1c';
+            document.getElementById('pw-minus').style.color = /[a-z]/.test(val) ? '#15803d' : '#b91c1c';
+            document.getElementById('pw-num').style.color = /[0-9]/.test(val) ? '#15803d' : '#b91c1c';
+          });
+        }
+        // Validación al enviar
+        {
+          const formInline = document.getElementById('register-form');
+          if (formInline) {
+            formInline.addEventListener('submit', function(e) {
+              const val = pw.value;
+              if (!(val.length >= 6 && /[A-Z]/.test(val) && /[a-z]/.test(val) && /[0-9]/.test(val))) {
+                alert('La contraseña no cumple con los requisitos de seguridad.');
+                pw.focus();
+                e.preventDefault();
+              }
+            });
+          }
+        }
+      </script>
+  <script src="register.js?v=20260430"></script>

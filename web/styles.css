@@ -962,6 +962,12 @@ th.sortable:hover {
   border-color: #eaecf0;
 }
 
+.tag-star {
+  background: #fdf4ff;
+  color: #6941c6;
+  border-color: #e9d7fe;
+}
+
 .btn-detail {
   min-height: 38px;
   padding: 0 14px;
@@ -1111,7 +1117,21 @@ dialog article > header h3 {
   color: #fff;
 }
 
+#btnEditarConvocatoria {
+  flex-shrink: 0;
+  margin-right: 8px;
+  padding: 6px 14px;
+  font-size: 0.9em;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  color: #fff;
+}
+
 #cerrarDetalle:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+#btnEditarConvocatoria:hover {
   background: rgba(255, 255, 255, 0.22);
 }
 
