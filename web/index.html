@@ -40,7 +40,7 @@
         <p style="margin-top:0.5em;">
           Solo se muestran las convocatorias laborales del Estado que <strong>vencen en los próximos 30 días</strong>.<br>
           Si deseas acceder a <strong>todas las convocatorias</strong>, filtros avanzados y alertas personalizadas,<br>
-          <a href="/static/privado/register.html" id="btnAccesoTotal" class="link-accent" style="margin-top:6px;display:inline-block;">Consigue Acceso Total (prueba de 7 días previo registro)</a>
+          <a href="/static/privado/register.html" id="btnAccesoTotal" class="link-accent" style="margin-top:6px;display:inline-block;" onclick="event.preventDefault();document.getElementById('modalAccesoTotal').showModal();">Consigue Acceso Total (prueba de 7 días previo registro)</a>
         </p>
       </div>
     </div>
@@ -186,6 +186,54 @@
     </article>
   </dialog>
 
+  <dialog id="modalAccesoTotal" style="border:none;border-radius:16px;padding:0;max-width:700px;width:95vw;box-shadow:0 8px 32px 0 rgba(18,32,51,0.22);background:#fff;">
+    <div style="padding:28px 24px 24px 24px;position:relative;">
+      <button onclick="document.getElementById('modalAccesoTotal').close()" style="position:absolute;top:14px;right:16px;background:none;border:none;font-size:2rem;color:#2563eb;cursor:pointer;line-height:1;" title="Cerrar" aria-label="Cerrar">&times;</button>
+      <h2 style="text-align:center;color:#13406a;margin:0 0 4px 0;font-size:1.3em;">¿Qué acceso tienes actualmente?</h2>
+      <p style="text-align:center;color:#64748b;margin:0 0 20px 0;font-size:0.97em;">Compara y decide qué acceso se adapta a ti</p>
+      <div class="modal-comparacion">
+
+        <div class="modal-card acceso-publico">
+          <h3 style="color:#64748b;font-size:1.1em;margin-bottom:12px;">Acceso Público</h3>
+          <ul>
+            <li>✅ Convocatorias que vencen en 30 días</li>
+            <li>✅ Búsqueda básica por puesto y entidad</li>
+            <li>✅ Detalle de cada convocatoria</li>
+            <li>❌ Sin convocatorias históricas</li>
+            <li>❌ Sin filtros avanzados</li>
+            <li>❌ Sin alertas por correo</li>
+            <li>❌ Sin lista de favoritos</li>
+          </ul>
+          <p style="margin-top:12px;font-weight:700;color:#64748b;font-size:1em;">Gratis · Sin registro</p>
+        </div>
+
+        <div class="modal-card acceso-total">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+            <h3 style="color:#2563eb;font-size:1.1em;margin:0;">🚀 Acceso Total</h3>
+            <span style="background:#2563eb;color:#fff;font-size:0.78em;font-weight:700;border-radius:8px;padding:2px 9px;">Recomendado</span>
+          </div>
+          <ul>
+            <li>✅ Todo lo del acceso público</li>
+            <li>✅ <strong>Todas las convocatorias</strong> sin límite de fecha</li>
+            <li>✅ Filtros avanzados (modalidad, situación, remuneración)</li>
+            <li>✅ Alertas por correo y Telegram</li>
+            <li>✅ Guarda tus convocatorias favoritas</li>
+            <li>✅ Historial y seguimiento de convocatorias</li>
+            <li>✅ Acceso anticipado a nuevas funciones</li>
+          </ul>
+          <p style="margin-top:12px;font-weight:700;color:#2563eb;font-size:1em;">✨ Prueba gratuita de 7 días</p>
+          <a href="/static/privado/register.html" style="display:block;margin-top:14px;background:#2563eb;color:#fff;font-weight:700;text-align:center;padding:11px 0;border-radius:10px;font-size:1.08em;text-decoration:none;box-shadow:0 2px 8px 0 rgba(37,99,235,0.18);transition:background 0.18s;" onmouseover="this.style.background='#1746a2'" onmouseout="this.style.background='#2563eb'">¡Lo quiero! &rarr;</a>
+        </div>
+
+      </div>
+    </div>
+  </dialog>
+
   <script src="app.js"></script>
+  <script>
+    document.getElementById('modalAccesoTotal').addEventListener('click', function(e) {
+      if (e.target === this) this.close();
+    });
+  </script>
 </body>
 </html>
